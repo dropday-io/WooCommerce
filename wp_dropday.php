@@ -34,6 +34,6 @@ require_once(__DIR__ . '/inc/Plugin.php');
             __('Do you have any questions or requests?', 'wp_dropday'),
             'https://wordpress.org/plugins/wc-wp-dropday/', 
             __('Do you like our plugin and can recommend to others?', 'wp_dropday')),
-        '1.0.1'
+        '1.0.2'
     )
 )->register();
