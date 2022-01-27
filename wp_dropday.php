@@ -4,7 +4,7 @@
  * Plugin Name: Dropday for WooCommerce
  * Plugin URI: https://dropday.nl
  * Description: Order synchronisation with Dropday drop-shipping automation.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Tested up to: 5.6
  * WC requires at least: 3.2
  * WC tested up to: 4.8
