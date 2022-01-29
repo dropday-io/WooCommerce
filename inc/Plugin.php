@@ -101,7 +101,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             $this->settings = get_option( $this->id );
     	}
         
-        function dropdaySettingsInit() {
+        public function dropdaySettingsInit() {
             register_setting(
                 $this->id,
                 $this->id,
@@ -171,7 +171,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             return $new_input;
         }
         
-        function dropdaySectionDevelopers( $args ) {
+        public function dropdaySectionDevelopers( $args ) {
             ?>
                 <p id="<?php echo esc_attr( $args['id'] ); ?>"><?php esc_html_e( 'Please Enter your api settings below:.', $this->id ); ?></p>
             <?php
@@ -201,7 +201,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             );
         }
         
-        function displaySettingForm() {
+        public function displaySettingForm() {
             if ( ! current_user_can( 'manage_options' ) ) {
                 return;
             }
