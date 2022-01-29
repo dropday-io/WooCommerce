@@ -294,47 +294,52 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
 
                     $order_data['products'][] = $p;
                 }
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $this->getApiUrl('orders'));
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
-                curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-                curl_setopt($ch, CURLOPT_POST, 1);
-                curl_setopt($ch, CURLOPT_PORT, 443);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($order_data));
-                if (!is_ssl() || 1) {
-                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-                    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-                }
 
-                $headers = array(
-                    'Content-Type: application/json',
-                    'Accept: application/json',
-                    'Api-Key: '.$this->settings['apiKey'],
-                    'Account-Id: '.$this->settings['accountId']
-                );
-                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-                $result = curl_exec($ch);
-                /*error_log('Ok');
-                error_log($result);
-                echo '<pre>';
-                print_r($order_data);
-                echo '</pre>';
-                print_r($result);die;*/
+                $response = $this->postOrder($order_data);
+
+                $context = array( 'source' => $this->id );
                 $logger = wc_get_logger();
-                if (curl_errno($ch)) {
-                    $logger->info( '[dropday] error order#'.$order_id.': ' . curl_error($ch), array( 'source' => $this->id ) );
+
+                if (isset($response->errors) && count($response->errors)) {
+                    $logger->info( '[dropday] error order#'.$order_id.': ' . json_encode($response->errors), $context );
+                    $order->add_order_note( json_encode($response->errors) );
                 } else {
-                    $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                    $result = json_decode($result, true);
-                    if ($httpcode == 200) {
-                        $logger->info( '[dropday] Order created :#'.$order_id.': ', array( 'source' => $this->id ) );
-                    } elseif ($httpcode == 422) {
-                        $logger->info( '[dropday] error order#'.$order_id.': ' . json_encode($result['errors']), array( 'source' => $this->id ) );
+                    $result = json_decode($response['body']);
+
+                    if ($response['response']['code'] == 200) {
+                        $logger->info( '[dropday] Order created :#'.$order_id.': ', $context );
+                    } elseif ($response['response']['code'] == 422) {
+                        $logger->warning( '[dropday] error order#'.$order_id.': ' . json_encode($result->errors), $context );
+                        if (isset($result->errors) && count($result->errors)) {
+                            foreach ($result->errors as $key => $error) {
+                                foreach ($error as $message) {
+                                    $order->add_order_note( $message );
+                                }
+                            }
+                        }
+                    } else {
+                        $logger->warning( '[dropday] error order#'.$order_id.': response code ' . $response['response']['code'], $context );
+                        $order->add_order_note( 'Unknown error in Dropray API, response code ' . $response['response']['code'] );
                     }
                 }
-                curl_close($ch);
             }
+        }
+
+        public function postOrder($order_data)
+        {
+            $headers = array(
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+                'Api-Key' => ''.$this->settings['apiKey'],
+                'Account-Id' => ''.$this->settings['accountId'],
+            );
+
+            $args = array(
+                'body'        => $order_data,
+                'headers'     => $headers,
+            );
+
+            return wp_remote_post( 'd'.$this->getApiUrl('orders'), $args );
         }
     }
 
