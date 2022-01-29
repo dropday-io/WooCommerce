@@ -260,7 +260,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                     ),
                     'products' => array()
                 );
-                
+
                 if (!$this->settings['live']) {
                     $order_data['test'] = true;
                 }
@@ -327,9 +327,11 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
 
         public function postOrder($order_data)
         {
+            $order_data = json_encode($order_data);
             $headers = array(
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
+                'Expect' => '100-Continue',
                 'Api-Key' => ''.$this->settings['apiKey'],
                 'Account-Id' => ''.$this->settings['accountId'],
             );
