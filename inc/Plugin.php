@@ -11,15 +11,15 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
     class Plugin
     {
         protected $id;
-	protected $mainMenuId;
-	protected $adapterName;
-	protected $title;
-	protected $description;
-	protected $optionKey;
-	protected $settings;
-	protected $adapter;
-	protected $pluginPath;
-	protected $version;
+    	protected $mainMenuId;
+    	protected $adapterName;
+    	protected $title;
+    	protected $description;
+    	protected $optionKey;
+    	protected $settings;
+    	protected $adapter;
+    	protected $pluginPath;
+    	protected $version;
         protected $image_format = 'full';
         protected $api_uri = 'https://dropday.io/api/v1/';
         
@@ -56,7 +56,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
         }
         
         public function register()
-	{
+	    {
             require_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
             // do not register when WooCommerce is not enabled
@@ -77,30 +77,29 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             add_filter('plugin_action_links_' . plugin_basename($this->pluginPath), array($this, 'onPluginActionLinks'), 1, 1);
             add_action('init', array($this, 'onInit'), 5);
             add_action('woocommerce_order_status_changed', array($this, 'onOrderStatusChanged'), 10, 3);
-	}
+	   }
 	
-	public function onAdminMenu()
-	{
+    	public function onAdminMenu()
+    	{
             add_submenu_page($this->mainMenuId, $this->title, $this->title, 'manage_options', 'admin-' . $this->id, array($this, 'displaySettingForm'));
-	}
+	   }
 
-	public function onPluginActionLinks($links)
-	{
+    	public function onPluginActionLinks($links)
+    	{
             $link = sprintf('<a href="%s">%s</a>', admin_url('options-general.php?page=admin-' . $this->id), __('Settings', $this->id));
             array_unshift($links, $link);
             return $links;
-	}
+    	}
 
         public function onInit()
-	{
+    	{
             $this->loadSettings();
-//            $this->test();
-	}
+    	}
         
         protected function loadSettings()
-	{		
+    	{		
             $this->settings = get_option( $this->id );
-	}
+    	}
         
         function dropdaySettingsInit() {
             register_setting(
@@ -239,6 +238,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             if (!$order_id ) {
                 return false;
             }
+
             $order = wc_get_order( $order_id );
             if ( $order && $order->is_paid()) {
                 $order_data = array(
