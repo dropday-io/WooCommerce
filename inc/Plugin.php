@@ -339,7 +339,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 'headers'     => $headers,
             );
 
-            return wp_remote_post( 'd'.$this->getApiUrl('orders'), $args );
+            return wp_remote_post( $this->getApiUrl('orders'), $args );
         }
     }
 
