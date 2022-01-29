@@ -15,3 +15,30 @@ Settings &rarr; Dropday Order Sync
 
 * Enter your API-key and Account ID from your Dropday Dashboard;
 * Check 'Live mode' if you tested the Plugin.
+
+## Adcanced usage: Custom variables
+
+To pass your customer variable to the API, you can use a filter. In, for example, `functions.php` you can add the following:
+
+```php
+/**
+ * Get the first product tag of the product
+ * 
+ * Alert: this only works well if you have one product tag
+ *        since the Dropday API only allows a string type
+ * 
+ * @param   $supplier_name  Orginal input of the Dropday plugin
+ * @param   $item           Line item of order
+ * */
+function dropday_change_supplier($supplier_name, $item)
+{
+    foreach($item->get_product()->tag_ids as $tag) {
+       // returns the first item of all tags directly.
+       return get_term($tag)->name;
+    }
+}
+
+add_filter('dropday_get_supplier', 'dropday_change_supplier', 10, 2);
+```
+
+This example manipulates the supplier. In this case, the _supplier_ name is converted to first _product_tag_.  

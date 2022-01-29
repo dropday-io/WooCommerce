@@ -278,18 +278,18 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                     if ( $terms && ! is_wp_error( $terms ) ) {
                         $brand_name = $terms[0]->name;
                     }
-                    
+
                     $image_url = wp_get_attachment_image_url( $product->get_image_id(), $this->image_format );
                     $p = array(
-                        'external_id' => ''.$item->get_id(),
-                        'name' => ''.$item->get_name(),
-                        'reference' => ''.$product->get_sku(),
-                        'quantity' => (int) $item->get_quantity(),
-                        'price' => (float) $product->get_price(),
-                        'image_url' => $image_url ? $image_url : '',
-                        'brand' => ''.$brand_name,
-                        'category' => ''.$cat,
-                        'supplier' => '',
+                        'external_id' => $item->get_id(),
+                        'name' => apply_filters('dropday_get_name', $item->get_name(), $item ),
+                        'reference' => apply_filters('dropday_get_reference', $product->get_sku(), $item ),
+                        'quantity' => apply_filters('dropday_get_quantity', (int) $item->get_quantity(), $item ),
+                        'price' => apply_filters('dropday_get_price', (float) $product->get_price(), $item ),
+                        'image_url' => apply_filters('dropday_get_image_url', $image_url ? $image_url : '', $item ),
+                        'brand' => apply_filters('dropday_get_brand', $brand_name, $item ),
+                        'category' => apply_filters('dropday_get_category', $cat, $item ),
+                        'supplier' => apply_filters( 'dropday_get_supplier', null, $item ),
                     );
 
                     $order_data['products'][] = $p;
