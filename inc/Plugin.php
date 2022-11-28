@@ -255,6 +255,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                         'address2' => ($order->get_shipping_address_2() ? $order->get_shipping_address_2() : $order->get_shipping_address_2()),
                         'postcode' => $order->get_shipping_postcode(),
                         'city' => $order->get_shipping_city(),
+			'state' => $order->get_shipping_state(),
                         'country' => WC()->countries->countries[$order->get_shipping_country()],
                         'phone' => $order->get_billing_phone(),
                     ),
