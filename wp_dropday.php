@@ -8,7 +8,7 @@
  * Tested up to: 5.6
  * WC requires at least: 3.2
  * WC tested up to: 4.8
- * Author: Dropday support@dropday.n
+ * Author: Dropday support@dropday.nl
  * Author URI: https://dropday.nl/
  * Developer: Sergio Talom
  * Developer URI: http://dropday.nl/
