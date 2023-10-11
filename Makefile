@@ -1,4 +1,3 @@
-# wip
 install:
 	docker compose down --volumes \
 	&& rm -rf wp-plugins \
