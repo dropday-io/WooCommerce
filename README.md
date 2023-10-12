@@ -42,3 +42,20 @@ add_filter('dropday_get_supplier', 'dropday_change_supplier', 10, 2);
 ```
 
 This example manipulates the supplier. In this case, the _supplier_ name is converted to first _product_tag_.  
+
+## Developing
+
+How to get started developing or testing this plugin?
+
+### Requirements
+
+- Docker
+- Git
+
+### Installation
+
+1. Make a directory: `mkdir dropday-woocommerce`
+2. Enter it: `cd dropday-woocommerce`
+3. Clone the repo in a directory `git clone https://github.com/dropday-io/woocommerce.git .`
+4. Run `make install`
+5. Once the container is ready, go to http://localhost:8080
