@@ -15,3 +15,20 @@ Settings &rarr; Dropday Order Sync
 
 * Enter your API-key and Account ID from your Dropday Dashboard;
 * Check 'Live mode' if you tested the Plugin.
+
+## Developing
+
+How to get started developing or testing this plugin?
+
+### Requirements
+
+- Docker
+- Git
+
+### Installation
+
+1. Make a directory: `mkdir dropday-woocommerce`
+2. Enter it: `cd dropday-woocommerce`
+3. Clone the repo in a directory `git clone https://github.com/dropday-io/woocommerce.git .`
+4. Run `make install`
+5. Once the container is ready, go to http://localhost:8080
