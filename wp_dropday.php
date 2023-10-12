@@ -8,8 +8,8 @@
  * Tested up to: 5.6
  * WC requires at least: 3.2
  * WC tested up to: 4.8
- * Author: Dropday support@dropday.nl
- * Author URI: https://get.dropday.io/
+ * Author: Contact Dropday Support
+ * Author URI: https://get.dropday.io/contact
  * Developer: Sergio Talom
  * Developer URI: https://get.dropday.io/
  * Text Domain: wp_dropday
