@@ -16,7 +16,7 @@ services:
       - .:/var/www/html/wp-content/plugins/dropday
     depends_on:
       - db
-    restart: always
+    restart: on-failure
 
   db:
     image: mysql:5.7
