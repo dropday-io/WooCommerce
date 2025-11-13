@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  wordpress:
+    image: wordpress:latest
+    ports:
+      - '8080:80'
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wordpress_data:/var/www/html
+      - ./wp-plugins/woocommerce:/var/www/html/wp-content/plugins/woocommerce
+      - .:/var/www/html/wp-content/plugins/dropday
+    depends_on:
+      - db
+    restart: on-failure
+
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: somewordpress
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: on-failure
+
+volumes:
+  wordpress_data:
+  db_data:
