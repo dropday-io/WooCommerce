@@ -29,7 +29,7 @@ require_once(__DIR__ . '/inc/Plugin.php');
         __FILE__, 
         'DropdayOrder', 
         sprintf('%s<br/><a href="%s" target="_blank">%s</a><br/><a href="%s" target="_blank">%s</a>', 
-            __('Dropday Order Sync', 'wp_dropday'),
+            __('Dropday', 'wp_dropday'),
             'https://get.dropday.io/contact',
             __('Do you have any questions or requests?', 'wp_dropday'),
             'https://wordpress.org/plugins/dropday-for-woocommerce/', 
