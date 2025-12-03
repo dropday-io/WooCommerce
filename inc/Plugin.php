@@ -161,6 +161,19 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                     'wporg_custom_data' => 'custom',
                 )
             );
+
+            add_settings_field(
+                $this->id.'_metaWhitelist',
+                __( 'Product Meta Data Whitelist', $this->id ),
+                array($this, 'dropdayFieldMetaWhitelistCb'),
+                $this->id,
+                $this->id.'_section_developers',
+                array(
+                    'label_for'         => $this->id.'_metaWhitelist',
+                    'class'             => 'row',
+                    'wporg_custom_data' => 'custom',
+                )
+            );
         }
         
         public function sanitize( $input )
@@ -176,6 +189,10 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
 
             if (isset($input['live'])) {
                 $new_input['live'] = absint($input['live']);
+            }
+
+            if (isset($input['metaWhitelist'])) {
+                $new_input['metaWhitelist'] = sanitize_text_field($input['metaWhitelist']);
             }
 
             return $new_input;
@@ -208,6 +225,16 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             printf(
                 '<input type="text" class="small-text" id="'.$this->id.'_accountId" name="'.$this->id.'[accountId]" value="%s" />',
                 isset( $this->settings['accountId'] ) ? esc_attr( $this->settings['accountId']) : ''
+            );
+        }
+
+        public function dropdayFieldMetaWhitelistCb()
+        {
+            printf(
+                '<input type="text" class="large-text" id="'.$this->id.'_metaWhitelist" name="'.$this->id.'[metaWhitelist]" value="%s" placeholder="supplier_code, purchase_price" />
+                <p class="description">%s</p>',
+                isset( $this->settings['metaWhitelist'] ) ? esc_attr( $this->settings['metaWhitelist']) : '',
+                __('Comma-separated list of product meta field names to include in orders sent to Dropday.', $this->id)
             );
         }
         
@@ -279,12 +306,14 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 $products = $order->get_items();
                 foreach ($products as $item_id => $item) {
                     $product = $item->get_product();
-                    $terms = get_the_terms( $product->get_id(), 'product_cat' );
+                    $product_id = $product->get_id();
+                    
+                    $terms = get_the_terms( $product_id, 'product_cat' );
                     $cat = 'Home';
                     if ( $terms && ! is_wp_error( $terms ) ) {
                         $cat = $terms[0]->name;
                     }
-                    $terms = get_the_terms( get_the_ID(), 'product_brand' );
+                    $terms = get_the_terms( $product_id, 'product_brand' );
                     $brand_name = '';
                     if ( $terms && ! is_wp_error( $terms ) ) {
                         $brand_name = $terms[0]->name;
@@ -302,6 +331,26 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                         'category' => ''.$cat,
                         'supplier' => '',
                     );
+
+                    // Get whitelisted meta fields and add to 'custom' field
+                    $whitelist = array();
+                    if (!empty($this->settings['metaWhitelist'])) {
+                        $whitelist = array_filter(array_map('trim', explode(',', $this->settings['metaWhitelist'])));
+                    }
+                    
+                    if (!empty($whitelist)) {
+                        $custom_data = array();
+                        foreach ($whitelist as $field_name) {
+                            $value = get_post_meta($product_id, $field_name, true);
+                            if ($value !== '' && $value !== false) {
+                                $custom_data[$field_name] = $value;
+                            }
+                        }
+                        
+                        if (!empty($custom_data)) {
+                            $p['custom'] = $custom_data;
+                        }
+                    }
 
                     $order_data['products'][] = $p;
                 }
