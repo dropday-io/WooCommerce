@@ -28,12 +28,7 @@ require_once(__DIR__ . '/inc/Plugin.php');
 (new Plugin(
         __FILE__, 
         'DropdayOrder', 
-        sprintf('%s<br/><a href="%s" target="_blank">%s</a><br/><a href="%s" target="_blank">%s</a>', 
-            __('Dropday Order Sync', 'wp_dropday'),
-            'https://get.dropday.io/contact',
-            __('Do you have any questions or requests?', 'wp_dropday'),
-            'https://wordpress.org/plugins/dropday-for-woocommerce/', 
-            __('Do you like our plugin and can recommend to others?', 'wp_dropday')),
+        '', 
         '1.0.2'
     )
 )->register();

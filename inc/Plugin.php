@@ -11,15 +11,15 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
     class Plugin
     {
         protected $id;
-	protected $mainMenuId;
-	protected $adapterName;
-	protected $title;
-	protected $description;
-	protected $optionKey;
-	protected $settings;
-	protected $adapter;
-	protected $pluginPath;
-	protected $version;
+    	protected $mainMenuId;
+    	protected $adapterName;
+    	protected $title;
+    	protected $description;
+    	protected $optionKey;
+    	protected $settings;
+    	protected $adapter;
+    	protected $pluginPath;
+    	protected $version;
         protected $image_format = 'full';
         protected $api_uri = 'https://dropday.io/api/v1/';
         
@@ -39,7 +39,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             );
 
             $this->mainMenuId = 'options-general.php';
-            $this->title = sprintf(__('%s Order Sync', $this->id), 'Dropday');
+            $this->title = 'Dropday';
         }
         
         private function test()
@@ -56,7 +56,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
         }
         
         public function register()
-	{
+	    {
             require_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
             // do not register when WooCommerce is not enabled
@@ -75,34 +75,43 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             }
 
             add_filter('plugin_action_links_' . plugin_basename($this->pluginPath), array($this, 'onPluginActionLinks'), 1, 1);
+            add_filter('plugin_row_meta', array($this, 'onPluginRowMeta'), 10, 2);
             add_action('init', array($this, 'onInit'), 5);
             add_action('woocommerce_order_status_changed', array($this, 'onOrderStatusChanged'), 10, 3);
-	}
+	   }
 	
-	public function onAdminMenu()
-	{
+    	public function onAdminMenu()
+    	{
             add_submenu_page($this->mainMenuId, $this->title, $this->title, 'manage_options', 'admin-' . $this->id, array($this, 'displaySettingForm'));
-	}
+	   }
 
-	public function onPluginActionLinks($links)
-	{
+    	public function onPluginActionLinks($links)
+    	{
             $link = sprintf('<a href="%s">%s</a>', admin_url('options-general.php?page=admin-' . $this->id), __('Settings', $this->id));
             array_unshift($links, $link);
             return $links;
-	}
+    	}
+
+        public function onPluginRowMeta($links, $file)
+        {
+            if (plugin_basename($this->pluginPath) === $file) {
+                $links[] = sprintf('<a href="%s" target="_blank">%s</a>', 'https://get.dropday.io/contact', __('Questions or requests?', 'wp_dropday'));
+                $links[] = sprintf('<a href="%s" target="_blank">%s</a>', 'https://wordpress.org/plugins/dropday-for-woocommerce/', __('Rate this plugin', 'wp_dropday'));
+            }
+            return $links;
+        }
 
         public function onInit()
-	{
+    	{
             $this->loadSettings();
-//            $this->test();
-	}
+    	}
         
         protected function loadSettings()
-	{		
+    	{		
             $this->settings = get_option( $this->id );
-	}
+    	}
         
-        function dropdaySettingsInit() {
+        public function dropdaySettingsInit() {
             register_setting(
                 $this->id,
                 $this->id,
@@ -152,6 +161,19 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                     'wporg_custom_data' => 'custom',
                 )
             );
+
+            add_settings_field(
+                $this->id.'_metaWhitelist',
+                __( 'Product Meta Data Whitelist', $this->id ),
+                array($this, 'dropdayFieldMetaWhitelistCb'),
+                $this->id,
+                $this->id.'_section_developers',
+                array(
+                    'label_for'         => $this->id.'_metaWhitelist',
+                    'class'             => 'row',
+                    'wporg_custom_data' => 'custom',
+                )
+            );
         }
         
         public function sanitize( $input )
@@ -169,10 +191,14 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 $new_input['live'] = absint($input['live']);
             }
 
+            if (isset($input['metaWhitelist'])) {
+                $new_input['metaWhitelist'] = sanitize_text_field($input['metaWhitelist']);
+            }
+
             return $new_input;
         }
         
-        function dropdaySectionDevelopers( $args ) {
+        public function dropdaySectionDevelopers( $args ) {
             ?>
                 <p id="<?php echo esc_attr( $args['id'] ); ?>"><?php esc_html_e( 'Please Enter your api settings below:.', $this->id ); ?></p>
             <?php
@@ -201,8 +227,18 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 isset( $this->settings['accountId'] ) ? esc_attr( $this->settings['accountId']) : ''
             );
         }
+
+        public function dropdayFieldMetaWhitelistCb()
+        {
+            printf(
+                '<input type="text" class="large-text" id="'.$this->id.'_metaWhitelist" name="'.$this->id.'[metaWhitelist]" value="%s" placeholder="supplier_code, purchase_price" />
+                <p class="description">%s</p>',
+                isset( $this->settings['metaWhitelist'] ) ? esc_attr( $this->settings['metaWhitelist']) : '',
+                __('Comma-separated list of product meta field names to include in orders sent to Dropday.', $this->id)
+            );
+        }
         
-        function displaySettingForm() {
+        public function displaySettingForm() {
             if ( ! current_user_can( 'manage_options' ) ) {
                 return;
             }
@@ -239,6 +275,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             if (!$order_id ) {
                 return false;
             }
+
             $order = wc_get_order( $order_id );
             if ( $order && $order->is_paid()) {
                 $order_data = array(
@@ -256,12 +293,12 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                         'postcode' => $order->get_shipping_postcode(),
                         'city' => $order->get_shipping_city(),
 			'state' => $order->get_shipping_state(),
-                        'country' => WC()->countries->countries[$order->get_shipping_country()],
+                        'country' => $order->get_shipping_country() && isset(WC()->countries->countries[$order->get_shipping_country()]) ? WC()->countries->countries[$order->get_shipping_country()] : '',
                         'phone' => $order->get_billing_phone(),
                     ),
                     'products' => array()
                 );
-                
+
                 if (!$this->settings['live']) {
                     $order_data['test'] = true;
                 }
@@ -269,12 +306,14 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 $products = $order->get_items();
                 foreach ($products as $item_id => $item) {
                     $product = $item->get_product();
-                    $terms = get_the_terms( $product->get_id(), 'product_cat' );
+                    $product_id = $product->get_id();
+                    
+                    $terms = get_the_terms( $product_id, 'product_cat' );
                     $cat = 'Home';
                     if ( $terms && ! is_wp_error( $terms ) ) {
                         $cat = $terms[0]->name;
                     }
-                    $terms = get_the_terms( get_the_ID(), 'product_brand' );
+                    $terms = get_the_terms( $product_id, 'product_brand' );
                     $brand_name = '';
                     if ( $terms && ! is_wp_error( $terms ) ) {
                         $brand_name = $terms[0]->name;
@@ -293,49 +332,76 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                         'supplier' => '',
                     );
 
+                    // Get whitelisted meta fields and add to 'custom' field
+                    $whitelist = array();
+                    if (!empty($this->settings['metaWhitelist'])) {
+                        $whitelist = array_filter(array_map('trim', explode(',', $this->settings['metaWhitelist'])));
+                    }
+                    
+                    if (!empty($whitelist)) {
+                        $custom_data = array();
+                        foreach ($whitelist as $field_name) {
+                            $value = get_post_meta($product_id, $field_name, true);
+                            if ($value !== '' && $value !== false) {
+                                $custom_data[$field_name] = $value;
+                            }
+                        }
+                        
+                        if (!empty($custom_data)) {
+                            $p['custom'] = $custom_data;
+                        }
+                    }
+
                     $order_data['products'][] = $p;
                 }
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $this->getApiUrl('orders'));
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
-                curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-                curl_setopt($ch, CURLOPT_POST, 1);
-                curl_setopt($ch, CURLOPT_PORT, 443);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($order_data));
-                if (!is_ssl() || 1) {
-                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-                    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-                }
 
-                $headers = array(
-                    'Content-Type: application/json',
-                    'Accept: application/json',
-                    'Api-Key: '.$this->settings['apiKey'],
-                    'Account-Id: '.$this->settings['accountId']
-                );
-                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-                $result = curl_exec($ch);
-                /*error_log('Ok');
-                error_log($result);
-                echo '<pre>';
-                print_r($order_data);
-                echo '</pre>';
-                print_r($result);die;*/
+                $response = $this->postOrder($order_data);
+
+                $context = array( 'source' => $this->id );
                 $logger = wc_get_logger();
-                if (curl_errno($ch)) {
-                    $logger->info( '[dropday] error order#'.$order_id.': ' . curl_error($ch), array( 'source' => $this->id ) );
+
+                if (is_wp_error($response)) {
+                    $logger->info( '[dropday] error order#'.$order_id.': ' . $response->get_error_message(), $context );
+                    $order->add_order_note( $response->get_error_message() );
                 } else {
-                    $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                    $result = json_decode($result, true);
-                    if ($httpcode == 200) {
-                        $logger->info( '[dropday] Order created :#'.$order_id.': ', array( 'source' => $this->id ) );
-                    } elseif ($httpcode == 422) {
-                        $logger->info( '[dropday] error order#'.$order_id.': ' . json_encode($result['errors']), array( 'source' => $this->id ) );
+                    $result = json_decode($response['body']);
+
+                    if ($response['response']['code'] == 200) {
+                        $logger->info( '[dropday] Order created :#'.$order_id.': ', $context );
+                    } elseif ($response['response']['code'] == 422) {
+                        $logger->warning( '[dropday] error order#'.$order_id.': ' . json_encode($result->errors), $context );
+                        if (isset($result->errors) && !empty($result->errors)) {
+                            foreach ($result->errors as $key => $error) {
+                                foreach ($error as $message) {
+                                    $order->add_order_note( $message );
+                                }
+                            }
+                        }
+                    } else {
+                        $logger->warning( '[dropday] error order#'.$order_id.': response code ' . $response['response']['code'], $context );
+                        $order->add_order_note( 'Unknown error in Dropday API, response code ' . $response['response']['code'] );
                     }
                 }
-                curl_close($ch);
             }
+        }
+
+        public function postOrder($order_data)
+        {
+            $order_data = json_encode($order_data);
+            $headers = array(
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+                'Expect' => '100-Continue',
+                'Api-Key' => ''.$this->settings['apiKey'],
+                'Account-Id' => ''.$this->settings['accountId'],
+            );
+
+            $args = array(
+                'body'        => $order_data,
+                'headers'     => $headers,
+            );
+
+            return wp_remote_post( $this->getApiUrl('orders'), $args );
         }
     }
 
