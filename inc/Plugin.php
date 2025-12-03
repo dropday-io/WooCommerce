@@ -379,7 +379,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                         }
                     } else {
                         $logger->warning( '[dropday] error order#'.$order_id.': response code ' . $response['response']['code'], $context );
-                        $order->add_order_note( 'Unknown error in Dropray API, response code ' . $response['response']['code'] );
+                        $order->add_order_note( 'Unknown error in Dropday API, response code ' . $response['response']['code'] );
                     }
                 }
             }
