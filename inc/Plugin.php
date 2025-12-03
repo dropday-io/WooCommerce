@@ -360,9 +360,9 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 $context = array( 'source' => $this->id );
                 $logger = wc_get_logger();
 
-                if (isset($response->errors) && count($response->errors)) {
-                    $logger->info( '[dropday] error order#'.$order_id.': ' . json_encode($response->errors), $context );
-                    $order->add_order_note( json_encode($response->errors) );
+                if (is_wp_error($response)) {
+                    $logger->info( '[dropday] error order#'.$order_id.': ' . $response->get_error_message(), $context );
+                    $order->add_order_note( $response->get_error_message() );
                 } else {
                     $result = json_decode($response['body']);
 
