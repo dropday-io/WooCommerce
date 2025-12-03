@@ -370,7 +370,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                         $logger->info( '[dropday] Order created :#'.$order_id.': ', $context );
                     } elseif ($response['response']['code'] == 422) {
                         $logger->warning( '[dropday] error order#'.$order_id.': ' . json_encode($result->errors), $context );
-                        if (isset($result->errors) && count($result->errors)) {
+                        if (isset($result->errors) && !empty($result->errors)) {
                             foreach ($result->errors as $key => $error) {
                                 foreach ($error as $message) {
                                     $order->add_order_note( $message );
