@@ -1,0 +1,20 @@
+# Directories
+/.github
+/wp-plugins
+
+# Files
+/.distignore
+/.gitignore
+/docker-compose.yml
+/Makefile
+/README.md
+/.editorconfig
+/.gitattributes
+
+# Development files
+*.log
+*.sql
+*.zip
+.DS_Store
+Thumbs.db
+
