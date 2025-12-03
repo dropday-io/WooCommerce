@@ -39,7 +39,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             );
 
             $this->mainMenuId = 'options-general.php';
-            $this->title = sprintf(__('%s Order Sync', $this->id), 'Dropday');
+            $this->title = 'Dropday Order Sync';
         }
         
         private function test()
@@ -75,6 +75,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             }
 
             add_filter('plugin_action_links_' . plugin_basename($this->pluginPath), array($this, 'onPluginActionLinks'), 1, 1);
+            add_filter('plugin_row_meta', array($this, 'onPluginRowMeta'), 10, 2);
             add_action('init', array($this, 'onInit'), 5);
             add_action('woocommerce_order_status_changed', array($this, 'onOrderStatusChanged'), 10, 3);
 	   }
@@ -90,6 +91,15 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             array_unshift($links, $link);
             return $links;
     	}
+
+        public function onPluginRowMeta($links, $file)
+        {
+            if (plugin_basename($this->pluginPath) === $file) {
+                $links[] = sprintf('<a href="%s" target="_blank">%s</a>', 'https://get.dropday.io/contact', __('Questions or requests?', 'wp_dropday'));
+                $links[] = sprintf('<a href="%s" target="_blank">%s</a>', 'https://wordpress.org/plugins/dropday-for-woocommerce/', __('Rate this plugin', 'wp_dropday'));
+            }
+            return $links;
+        }
 
         public function onInit()
     	{
