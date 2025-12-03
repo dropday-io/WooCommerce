@@ -187,6 +187,19 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                     'wporg_custom_data' => 'custom',
                 )
             );
+
+            add_settings_field(
+                $this->id.'_deliveryDateMeta',
+                __( 'Delivery Date Meta Data', $this->id ),
+                array($this, 'dropdayFieldDeliveryDateMetaCb'),
+                $this->id,
+                $this->id.'_section_developers',
+                array(
+                    'label_for'         => $this->id.'_deliveryDateMeta',
+                    'class'             => 'row',
+                    'wporg_custom_data' => 'custom',
+                )
+            );
         }
         
         public function sanitize( $input )
@@ -210,6 +223,10 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
 
             if (isset($input['purchasePriceMeta'])) {
                 $new_input['purchasePriceMeta'] = sanitize_text_field($input['purchasePriceMeta']);
+            }
+
+            if (isset($input['deliveryDateMeta'])) {
+                $new_input['deliveryDateMeta'] = sanitize_text_field($input['deliveryDateMeta']);
             }
 
             return $new_input;
@@ -264,6 +281,18 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 isset( $this->settings['purchasePriceMeta'] ) ? esc_attr( $this->settings['purchasePriceMeta']) : $default_keys,
                 esc_attr($default_keys),
                 __('Comma-separated list of meta field names to check for purchase price (checked in order). Common keys: _wc_cog_cost (Cost of Goods by SkyVerge), _alg_wc_cog_cost (WPFactory), _wcj_purchase_price (Booster), _purchase_price (custom).', $this->id)
+            );
+        }
+
+        public function dropdayFieldDeliveryDateMetaCb()
+        {
+            $default_keys = 'Delivery Date, _orddd_lite_timestamp, delivery_date, _delivery_date, jckwds_date, order_delivery_date';
+            printf(
+                '<input type="text" class="large-text" id="'.$this->id.'_deliveryDateMeta" name="'.$this->id.'[deliveryDateMeta]" value="%s" placeholder="%s" />
+                <p class="description">%s</p>',
+                isset( $this->settings['deliveryDateMeta'] ) ? esc_attr( $this->settings['deliveryDateMeta']) : $default_keys,
+                esc_attr($default_keys),
+                __('Comma-separated list of order meta field names to check for delivery date (checked in order). Common keys: Delivery Date (Order Delivery Date Lite), jckwds_date (Iconic Delivery Slots), delivery_date (generic).', $this->id)
             );
         }
         
@@ -516,22 +545,12 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
          */
         protected function getDeliveryDate($order)
         {
-            // Common meta keys used by delivery date plugins
-            $meta_keys = array(
-                'delivery_date',
-                '_delivery_date',
-                'jckwds_date',
-                '_jckwds_date',
-                'order_delivery_date',
-                '_order_delivery_date',
-                'wc_delivery_date',
-                '_wc_delivery_date',
-                'shipping_date',
-                '_shipping_date',
-            );
-
-            // Allow filtering of meta keys for custom implementations
-            $meta_keys = apply_filters('dropday_delivery_date_meta_keys', $meta_keys);
+            $default_keys = 'Delivery Date, _orddd_lite_timestamp, delivery_date, _delivery_date, jckwds_date, order_delivery_date';
+            $meta_keys_string = isset($this->settings['deliveryDateMeta']) && !empty($this->settings['deliveryDateMeta']) 
+                ? $this->settings['deliveryDateMeta'] 
+                : $default_keys;
+            
+            $meta_keys = array_filter(array_map('trim', explode(',', $meta_keys_string)));
 
             foreach ($meta_keys as $key) {
                 $date = $order->get_meta($key);
@@ -546,15 +565,20 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
         /**
          * Format delivery date to DD-MM-YYYY format.
          *
-         * @param string $date The date string.
+         * @param string $date The date string or Unix timestamp.
          * @return string Formatted date in DD-MM-YYYY format.
          */
         protected function formatDeliveryDate($date)
         {
-            // Try to parse the date
+            // Handle Unix timestamps (numeric values)
+            if (is_numeric($date)) {
+                return date('d-m-Y', (int) $date);
+            }
+
+            // Try to parse the date string
             $timestamp = strtotime($date);
             if ($timestamp === false) {
-                // Already in correct format or unparseable, return as-is
+                // Unparseable, return as-is
                 return $date;
             }
 
