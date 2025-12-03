@@ -1,6 +1,10 @@
 name: Deploy to WordPress.org
 
 on:
+    push:
+        branches:
+            - main
+            - master
   release:
     types: [published]
 
