@@ -39,7 +39,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             );
 
             $this->mainMenuId = 'options-general.php';
-            $this->title = 'Dropday Order Sync';
+            $this->title = 'Dropday';
         }
         
         private function test()
