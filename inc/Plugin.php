@@ -174,6 +174,19 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                     'wporg_custom_data' => 'custom',
                 )
             );
+
+            add_settings_field(
+                $this->id.'_purchasePriceMeta',
+                __( 'Purchase Price Meta Data', $this->id ),
+                array($this, 'dropdayFieldPurchasePriceMetaCb'),
+                $this->id,
+                $this->id.'_section_developers',
+                array(
+                    'label_for'         => $this->id.'_purchasePriceMeta',
+                    'class'             => 'row',
+                    'wporg_custom_data' => 'custom',
+                )
+            );
         }
         
         public function sanitize( $input )
@@ -193,6 +206,10 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
 
             if (isset($input['metaWhitelist'])) {
                 $new_input['metaWhitelist'] = sanitize_text_field($input['metaWhitelist']);
+            }
+
+            if (isset($input['purchasePriceMeta'])) {
+                $new_input['purchasePriceMeta'] = sanitize_text_field($input['purchasePriceMeta']);
             }
 
             return $new_input;
@@ -235,6 +252,18 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 <p class="description">%s</p>',
                 isset( $this->settings['metaWhitelist'] ) ? esc_attr( $this->settings['metaWhitelist']) : '',
                 __('Comma-separated list of product meta field names to include in orders sent to Dropday.', $this->id)
+            );
+        }
+
+        public function dropdayFieldPurchasePriceMetaCb()
+        {
+            $default_keys = '_wc_cog_cost, _alg_wc_cog_cost, _wcj_purchase_price, _purchase_price';
+            printf(
+                '<input type="text" class="large-text" id="'.$this->id.'_purchasePriceMeta" name="'.$this->id.'[purchasePriceMeta]" value="%s" placeholder="%s" />
+                <p class="description">%s</p>',
+                isset( $this->settings['purchasePriceMeta'] ) ? esc_attr( $this->settings['purchasePriceMeta']) : $default_keys,
+                esc_attr($default_keys),
+                __('Comma-separated list of meta field names to check for purchase price (checked in order). Common keys: _wc_cog_cost (Cost of Goods by SkyVerge), _alg_wc_cog_cost (WPFactory), _wcj_purchase_price (Booster), _purchase_price (custom).', $this->id)
             );
         }
         
@@ -332,6 +361,12 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                         'supplier' => '',
                     );
 
+                    // Add purchase price if available from various cost-of-goods plugins
+                    $purchase_price = $this->getProductPurchasePrice($product_id);
+                    if ($purchase_price !== null) {
+                        $p['purchase_price'] = $purchase_price;
+                    }
+
                     // Get whitelisted meta fields and add to 'custom' field
                     $whitelist = array();
                     if (!empty($this->settings['metaWhitelist'])) {
@@ -383,6 +418,34 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                     }
                 }
             }
+        }
+
+        /**
+         * Get the purchase/cost price for a product from various cost-of-goods plugins.
+         * 
+         * Checks meta keys configured in settings (in order of priority).
+         * Default keys: _wc_cog_cost, _alg_wc_cog_cost, _wcj_purchase_price, _purchase_price
+         *
+         * @param int $product_id The product ID to get the purchase price for
+         * @return float|null The purchase price or null if not found
+         */
+        protected function getProductPurchasePrice($product_id)
+        {
+            $default_keys = '_wc_cog_cost, _alg_wc_cog_cost, _wcj_purchase_price, _purchase_price';
+            $meta_keys_string = isset($this->settings['purchasePriceMeta']) && !empty($this->settings['purchasePriceMeta']) 
+                ? $this->settings['purchasePriceMeta'] 
+                : $default_keys;
+            
+            $meta_keys = array_filter(array_map('trim', explode(',', $meta_keys_string)));
+
+            foreach ($meta_keys as $meta_key) {
+                $value = get_post_meta($product_id, $meta_key, true);
+                if ($value !== '' && $value !== false && is_numeric($value)) {
+                    return (float) $value;
+                }
+            }
+
+            return null;
         }
 
         public function postOrder($order_data)
