@@ -282,7 +282,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                     'external_id' => ''.$order_id,
                     'source' => get_bloginfo('name'),
                     'total' => $order->get_total(),
-                    'shipping_cost' => $order->get_shipping_total(),
+                    'shipping' => $this->getShippingData($order),
                     'email' => $order->get_billing_email(),
                     'shipping_address' => array(
                         'first_name' => $order->get_shipping_first_name(),
@@ -292,7 +292,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                         'address2' => ($order->get_shipping_address_2() ? $order->get_shipping_address_2() : $order->get_shipping_address_2()),
                         'postcode' => $order->get_shipping_postcode(),
                         'city' => $order->get_shipping_city(),
-			'state' => $order->get_shipping_state(),
+                        'state' => $order->get_shipping_state(),
                         'country' => $order->get_shipping_country() && isset(WC()->countries->countries[$order->get_shipping_country()]) ? WC()->countries->countries[$order->get_shipping_country()] : '',
                         'phone' => $order->get_billing_phone(),
                     ),
@@ -402,6 +402,100 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             );
 
             return wp_remote_post( $this->getApiUrl('orders'), $args );
+        }
+
+        /**
+         * Get shipping data from order for Dropday API.
+         *
+         * @param WC_Order $order The WooCommerce order.
+         * @return array Shipping data array.
+         */
+        protected function getShippingData($order)
+        {
+            $shipping_data = array(
+                'cost' => (float) $order->get_shipping_total(),
+            );
+
+            // Get shipping method name and description from order shipping items
+            $shipping_methods = $order->get_shipping_methods();
+            if (!empty($shipping_methods)) {
+                $shipping_method = reset($shipping_methods);
+                $shipping_data['name'] = $shipping_method->get_method_title();
+                
+                // Use method_id as description if different from name
+                $method_id = $shipping_method->get_method_id();
+                if ($method_id && $method_id !== $shipping_data['name']) {
+                    $shipping_data['description'] = $method_id;
+                }
+            }
+
+            // Add customer note as shipping note if available
+            $customer_note = $order->get_customer_note();
+            if (!empty($customer_note)) {
+                $shipping_data['note'] = $customer_note;
+            }
+
+            // Check for delivery date in order meta (common meta keys used by delivery date plugins)
+            $delivery_date = $this->getDeliveryDate($order);
+            if ($delivery_date) {
+                $shipping_data['delivery_date'] = $delivery_date;
+            }
+
+            return $shipping_data;
+        }
+
+        /**
+         * Get delivery date from order meta.
+         * Supports common delivery date plugins and custom meta fields.
+         *
+         * @param WC_Order $order The WooCommerce order.
+         * @return string|null Delivery date in DD-MM-YYYY format or null.
+         */
+        protected function getDeliveryDate($order)
+        {
+            // Common meta keys used by delivery date plugins
+            $meta_keys = array(
+                'delivery_date',
+                '_delivery_date',
+                'jckwds_date',
+                '_jckwds_date',
+                'order_delivery_date',
+                '_order_delivery_date',
+                'wc_delivery_date',
+                '_wc_delivery_date',
+                'shipping_date',
+                '_shipping_date',
+            );
+
+            // Allow filtering of meta keys for custom implementations
+            $meta_keys = apply_filters('dropday_delivery_date_meta_keys', $meta_keys);
+
+            foreach ($meta_keys as $key) {
+                $date = $order->get_meta($key);
+                if (!empty($date)) {
+                    return $this->formatDeliveryDate($date);
+                }
+            }
+
+            return null;
+        }
+
+        /**
+         * Format delivery date to DD-MM-YYYY format.
+         *
+         * @param string $date The date string.
+         * @return string Formatted date in DD-MM-YYYY format.
+         */
+        protected function formatDeliveryDate($date)
+        {
+            // Try to parse the date
+            $timestamp = strtotime($date);
+            if ($timestamp === false) {
+                // Already in correct format or unparseable, return as-is
+                return $date;
+            }
+
+            return date('d-m-Y', $timestamp);
         }
     }
 
