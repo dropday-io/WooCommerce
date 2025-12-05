@@ -42,7 +42,7 @@ jobs:
         if: steps.check_release.outputs.exists == 'false'
         run: |
           # Create a temporary directory for the plugin
-          PLUGIN_SLUG="dropday-for-woocommerce"
+          PLUGIN_SLUG="dropday"
           mkdir -p build/$PLUGIN_SLUG
           
           # Copy plugin files (excluding dev/build files)
@@ -62,7 +62,7 @@ jobs:
       - name: Create GitHub Release
         if: steps.check_release.outputs.exists == 'false'
         run: |
-          PLUGIN_SLUG="dropday-for-woocommerce"
+          PLUGIN_SLUG="dropday"
           VERSION="${{ steps.get_version.outputs.version }}"
           
           gh release create "v${VERSION}" \
