@@ -87,7 +87,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
 
     	public function onPluginActionLinks($links)
     	{
-            $link = sprintf('<a href="%s">%s</a>', admin_url('options-general.php?page=admin-' . $this->id), __('Settings', $this->id));
+            $link = sprintf('<a href="%s">%s</a>', admin_url('options-general.php?page=admin-' . esc_attr($this->id)), __('Settings', 'dropday-for-woocommerce'));
             array_unshift($links, $link);
             return $links;
     	}
@@ -95,8 +95,8 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
         public function onPluginRowMeta($links, $file)
         {
             if (plugin_basename($this->pluginPath) === $file) {
-                $links[] = sprintf('<a href="%s" target="_blank">%s</a>', 'https://get.dropday.io/contact', __('Questions or requests?', 'wp_dropday'));
-                $links[] = sprintf('<a href="%s" target="_blank">%s</a>', 'https://wordpress.org/plugins/dropday-for-woocommerce/', __('Rate this plugin', 'wp_dropday'));
+                $links[] = sprintf('<a href="%s" target="_blank">%s</a>', 'https://get.dropday.io/contact', __('Questions or requests?', 'dropday-for-woocommerce'));
+                $links[] = sprintf('<a href="%s" target="_blank">%s</a>', 'https://wordpress.org/plugins/dropday-for-woocommerce/', __('Rate this plugin', 'dropday-for-woocommerce'));
             }
             return $links;
         }
@@ -120,13 +120,13 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
 
             add_settings_section(
                 $this->id.'_section_developers',
-                __( 'Api Settings', $this->id ), array($this, 'dropdaySectionDevelopers'),
+                __( 'API Settings', 'dropday-for-woocommerce' ), array($this, 'dropdaySectionDevelopers'),
                 $this->id
             );
 
             add_settings_field(
                 $this->id.'_live',
-                __( 'Live mode', $this->id ),
+                __( 'Live mode', 'dropday-for-woocommerce' ),
                 array($this, 'dropdayFieldLiveModeCb'),
                 $this->id,
                 $this->id.'_section_developers',
@@ -138,7 +138,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             );
             add_settings_field(
                 $this->id.'_apiKey',
-                __( 'API Key', $this->id ),
+                __( 'API Key', 'dropday-for-woocommerce' ),
                 array($this, 'dropdayFieldApiKeyCb'),
                 $this->id,
                 $this->id.'_section_developers',
@@ -151,7 +151,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             
             add_settings_field(
                 $this->id.'_accountId',
-                __( 'Account ID', $this->id ),
+                __( 'Account ID', 'dropday-for-woocommerce' ),
                 array($this, 'dropdayFieldAccountIdCb'),
                 $this->id,
                 $this->id.'_section_developers',
@@ -164,7 +164,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
 
             add_settings_field(
                 $this->id.'_metaWhitelist',
-                __( 'Product Meta Data Whitelist', $this->id ),
+                __( 'Product Meta Data Whitelist', 'dropday-for-woocommerce' ),
                 array($this, 'dropdayFieldMetaWhitelistCb'),
                 $this->id,
                 $this->id.'_section_developers',
@@ -177,7 +177,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
 
             add_settings_field(
                 $this->id.'_purchasePriceMeta',
-                __( 'Purchase Price Meta Data', $this->id ),
+                __( 'Purchase Price Meta Data', 'dropday-for-woocommerce' ),
                 array($this, 'dropdayFieldPurchasePriceMetaCb'),
                 $this->id,
                 $this->id.'_section_developers',
@@ -190,7 +190,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
 
             add_settings_field(
                 $this->id.'_deliveryDateMeta',
-                __( 'Delivery Date Meta Data', $this->id ),
+                __( 'Delivery Date Meta Data', 'dropday-for-woocommerce' ),
                 array($this, 'dropdayFieldDeliveryDateMetaCb'),
                 $this->id,
                 $this->id.'_section_developers',
@@ -234,65 +234,83 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
         
         public function dropdaySectionDevelopers( $args ) {
             ?>
-                <p id="<?php echo esc_attr( $args['id'] ); ?>"><?php esc_html_e( 'Please Enter your api settings below:.', $this->id ); ?></p>
+                <p id="<?php echo esc_attr( $args['id'] ); ?>"><?php esc_html_e( 'Please enter your API settings below:', 'dropday-for-woocommerce' ); ?></p>
             <?php
         }
         
         public function dropdayFieldLiveModeCb()
         {
+            $id_escaped = esc_attr($this->id);
             printf(
-                '<input type="checkbox" id="'.$this->id.'_live" name="'.$this->id.'[live]" value="1" %s />',
+                '<input type="checkbox" id="%s_live" name="%s[live]" value="1" %s />',
+                $id_escaped,
+                $id_escaped,
                 ( isset( $this->settings['live'] ) && $this->settings['live'] ) ? 'checked' : ''
             );
         }
         
         public function dropdayFieldApiKeyCb()
         {
+            $id_escaped = esc_attr($this->id);
             printf(
-                '<input type="text" class="large-text" id="'.$this->id.'_apiKey" name="'.$this->id.'[apiKey]" value="%s" />',
+                '<input type="text" class="large-text" id="%s_apiKey" name="%s[apiKey]" value="%s" />',
+                $id_escaped,
+                $id_escaped,
                 isset( $this->settings['apiKey'] ) ? esc_attr( $this->settings['apiKey']) : ''
             );
         }
         
         public function dropdayFieldAccountIdCb()
         {
+            $id_escaped = esc_attr($this->id);
             printf(
-                '<input type="text" class="small-text" id="'.$this->id.'_accountId" name="'.$this->id.'[accountId]" value="%s" />',
+                '<input type="text" class="small-text" id="%s_accountId" name="%s[accountId]" value="%s" />',
+                $id_escaped,
+                $id_escaped,
                 isset( $this->settings['accountId'] ) ? esc_attr( $this->settings['accountId']) : ''
             );
         }
 
         public function dropdayFieldMetaWhitelistCb()
         {
+            $id_escaped = esc_attr($this->id);
             printf(
-                '<input type="text" class="large-text" id="'.$this->id.'_metaWhitelist" name="'.$this->id.'[metaWhitelist]" value="%s" placeholder="supplier_code, purchase_price" />
+                '<input type="text" class="large-text" id="%s_metaWhitelist" name="%s[metaWhitelist]" value="%s" placeholder="supplier_code, purchase_price" />
                 <p class="description">%s</p>',
+                $id_escaped,
+                $id_escaped,
                 isset( $this->settings['metaWhitelist'] ) ? esc_attr( $this->settings['metaWhitelist']) : '',
-                __('Comma-separated list of product meta field names to include in orders sent to Dropday.', $this->id)
+                esc_html__('Comma-separated list of product meta field names to include in orders sent to Dropday.', 'dropday-for-woocommerce')
             );
         }
 
         public function dropdayFieldPurchasePriceMetaCb()
         {
+            $id_escaped = esc_attr($this->id);
             $default_keys = '_wc_cog_cost, _alg_wc_cog_cost, _wcj_purchase_price, _purchase_price';
             printf(
-                '<input type="text" class="large-text" id="'.$this->id.'_purchasePriceMeta" name="'.$this->id.'[purchasePriceMeta]" value="%s" placeholder="%s" />
+                '<input type="text" class="large-text" id="%s_purchasePriceMeta" name="%s[purchasePriceMeta]" value="%s" placeholder="%s" />
                 <p class="description">%s</p>',
-                isset( $this->settings['purchasePriceMeta'] ) ? esc_attr( $this->settings['purchasePriceMeta']) : $default_keys,
+                $id_escaped,
+                $id_escaped,
+                isset( $this->settings['purchasePriceMeta'] ) ? esc_attr( $this->settings['purchasePriceMeta']) : esc_attr($default_keys),
                 esc_attr($default_keys),
-                __('Comma-separated list of meta field names to check for purchase price (checked in order). Common keys: _wc_cog_cost (Cost of Goods by SkyVerge), _alg_wc_cog_cost (WPFactory), _wcj_purchase_price (Booster), _purchase_price (custom).', $this->id)
+                esc_html__('Comma-separated list of meta field names to check for purchase price (checked in order). Common keys: _wc_cog_cost (Cost of Goods by SkyVerge), _alg_wc_cog_cost (WPFactory), _wcj_purchase_price (Booster), _purchase_price (custom).', 'dropday-for-woocommerce')
             );
         }
 
         public function dropdayFieldDeliveryDateMetaCb()
         {
+            $id_escaped = esc_attr($this->id);
             $default_keys = 'Delivery Date, _orddd_lite_timestamp, delivery_date, _delivery_date, jckwds_date, order_delivery_date';
             printf(
-                '<input type="text" class="large-text" id="'.$this->id.'_deliveryDateMeta" name="'.$this->id.'[deliveryDateMeta]" value="%s" placeholder="%s" />
+                '<input type="text" class="large-text" id="%s_deliveryDateMeta" name="%s[deliveryDateMeta]" value="%s" placeholder="%s" />
                 <p class="description">%s</p>',
-                isset( $this->settings['deliveryDateMeta'] ) ? esc_attr( $this->settings['deliveryDateMeta']) : $default_keys,
+                $id_escaped,
+                $id_escaped,
+                isset( $this->settings['deliveryDateMeta'] ) ? esc_attr( $this->settings['deliveryDateMeta']) : esc_attr($default_keys),
                 esc_attr($default_keys),
-                __('Comma-separated list of order meta field names to check for delivery date (checked in order). Common keys: Delivery Date (Order Delivery Date Lite), jckwds_date (Iconic Delivery Slots), delivery_date (generic).', $this->id)
+                esc_html__('Comma-separated list of order meta field names to check for delivery date (checked in order). Common keys: Delivery Date (Order Delivery Date Lite), jckwds_date (Iconic Delivery Slots), delivery_date (generic).', 'dropday-for-woocommerce')
             );
         }
         
@@ -303,7 +321,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
 
             if ( isset( $_GET['settings-updated'] ) ) {
                 // add settings saved message with the class of "updated"
-                add_settings_error( 'wporg_messages', 'wporg_message', __( 'Settings Saved', 'wporg' ), 'updated' );
+                add_settings_error( 'wporg_messages', 'wporg_message', __( 'Settings Saved', 'dropday-for-woocommerce' ), 'updated' );
             }
 
             settings_errors( 'wporg_messages' );
@@ -492,7 +510,12 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 'body'        => $order_data,
                 'headers'     => $headers,
             );
-
+            
+            // Yes, this will be logged in Docker if WP_DEBUG is enabled, because error_log() writes to STDERR, which is captured by the container logs.
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('[Dropday Plugin Debug] postOrder() triggered');
+            }
+            
             return wp_remote_post( $this->getApiUrl('orders'), $args );
         }
 

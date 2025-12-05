@@ -3,17 +3,17 @@
 /**
  * Plugin Name: Dropday - Dropship Order Automation
  * Plugin URI: https://get.dropday.io/
- * Description: Automate dropship orders by email, FTP, EDI or API to your suppliers. Seamless integration for your webshop.
- * Version: 1.1.0
- * Tested up to: 6.7
- * WC requires at least: 7.0
+ * Description: Order synchronisation with Dropday drop-shipping automation.
+ * Version: 1.1.1
+ * Tested up to: 6.9
+ * WC requires at least: 3.2
  * WC tested up to: 9.4
- * Author: Dropday
- * Author URI: https://get.dropday.io/
- * Developer: Dropday
+ * Requires Plugins: woocommerce
+ * Author: Contact Dropday Support
+ * Author URI: https://get.dropday.io/contact
+ * Developer: Sergio Talom
  * Developer URI: https://get.dropday.io/
- * Text Domain: wp_dropday
- * Domain Path: /languages
+ * Text Domain: dropday-for-woocommerce
  *
  * Copyright: © 2024 Dropday, Nl.
  * License: GNU General Public License v3.0
@@ -28,7 +28,7 @@ require_once(__DIR__ . '/inc/Plugin.php');
 (new Plugin(
         __FILE__, 
         'DropdayOrder', 
-        '', 
-        '1.1.0'
+        '',
+        '1.1.1'
     )
 )->register();

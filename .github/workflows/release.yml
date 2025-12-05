@@ -1,0 +1,81 @@
+name: Create Release on Version Update
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - 'wp_dropday.php'
+
+jobs:
+  check-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version from plugin file
+        id: get_version
+        run: |
+          VERSION=$(grep -i "Version:" wp_dropday.php | head -1 | sed 's/.*Version:\s*\([0-9.]*\).*/\1/')
+          echo "Plugin version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if release already exists
+        id: check_release
+        run: |
+          if gh release view "v${{ steps.get_version.outputs.version }}" > /dev/null 2>&1; then
+            echo "Release v${{ steps.get_version.outputs.version }} already exists"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Release v${{ steps.get_version.outputs.version }} does not exist"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create plugin zip file
+        if: steps.check_release.outputs.exists == 'false'
+        run: |
+          # Create a temporary directory for the plugin
+          PLUGIN_SLUG="dropday"
+          mkdir -p build/$PLUGIN_SLUG
+          
+          # Copy plugin files (excluding dev/build files)
+          cp wp_dropday.php build/$PLUGIN_SLUG/
+          cp readme.txt build/$PLUGIN_SLUG/
+          cp README.md build/$PLUGIN_SLUG/
+          cp -r inc build/$PLUGIN_SLUG/
+          
+          # Create the zip file
+          cd build
+          zip -r ../${PLUGIN_SLUG}-${{ steps.get_version.outputs.version }}.zip $PLUGIN_SLUG
+          cd ..
+          
+          echo "Created ${PLUGIN_SLUG}-${{ steps.get_version.outputs.version }}.zip"
+          ls -la *.zip
+
+      - name: Create GitHub Release
+        if: steps.check_release.outputs.exists == 'false'
+        run: |
+          PLUGIN_SLUG="dropday"
+          VERSION="${{ steps.get_version.outputs.version }}"
+          
+          gh release create "v${VERSION}" \
+            --title "Dropday for WooCommerce v${VERSION}" \
+            --generate-notes \
+            "${PLUGIN_SLUG}-${VERSION}.zip"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip release (already exists)
+        if: steps.check_release.outputs.exists == 'true'
+        run: |
+          echo "::notice::Release v${{ steps.get_version.outputs.version }} already exists. Skipping release creation."
+
+
+
