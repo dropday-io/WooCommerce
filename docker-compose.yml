@@ -11,7 +11,6 @@ services:
       WORDPRESS_DEBUG: true
     volumes:
       - wordpress_data:/var/www/html
-      - ./wp-plugins/woocommerce:/var/www/html/wp-content/plugins/woocommerce
       - .:/var/www/html/wp-content/plugins/dropday
     depends_on:
       - db
