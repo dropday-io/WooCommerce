@@ -59,7 +59,7 @@ jobs:
           echo "Created ${PLUGIN_SLUG}-${{ steps.get_version.outputs.version }}.zip"
           ls -la *.zip
 
-      - name: Create GitHub Release
+      - name: Create GitHub Draft Release
         if: steps.check_release.outputs.exists == 'false'
         run: |
           PLUGIN_SLUG="dropday"
@@ -68,6 +68,7 @@ jobs:
           gh release create "v${VERSION}" \
             --title "Dropday for WooCommerce v${VERSION}" \
             --generate-notes \
+            --draft \
             "${PLUGIN_SLUG}-${VERSION}.zip"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
