@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Plugin Name: Dropday for WooCommerce
+ * Plugin Name: Dropday - Order Automation
  * Plugin URI: https://get.dropday.io/
  * Description: Order synchronisation with Dropday drop-shipping automation.
  * Version: 1.0.2

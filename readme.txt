@@ -1,4 +1,4 @@
-WordPress / WooCommerce Plugin for Dropday
+Dropday - Order Automation
 ===============
 
 Contributors: dropday
@@ -15,7 +15,7 @@ License URI: http://www.gnu.org/licenses/gpl-3.0.html
 ## How to install the module?
 
 * Download the Dropday plugin;
-* Go to the admin area of your WooCommerce (WordPress) webshop;
+* Go to the admin area of your store;
 * In the admin area, go to 'Plugins' and then 'Add New' and choose 'Upload Plugin';
 * Click on 'select file', upload the .zip file and click on 'Install Now';
 * Click on 'Activate Plugin'.
