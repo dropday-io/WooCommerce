@@ -53,10 +53,10 @@ jobs:
           
           # Create the zip file
           cd build
-          zip -r ../${PLUGIN_SLUG}-${{ steps.get_version.outputs.version }}.zip $PLUGIN_SLUG
+          zip -r ../${PLUGIN_SLUG}.zip $PLUGIN_SLUG
           cd ..
           
-          echo "Created ${PLUGIN_SLUG}-${{ steps.get_version.outputs.version }}.zip"
+          echo "Created ${PLUGIN_SLUG}.zip"
           ls -la *.zip
 
       - name: Create GitHub Draft Release
@@ -69,7 +69,7 @@ jobs:
             --title "Dropday for WooCommerce v${VERSION}" \
             --generate-notes \
             --draft \
-            "${PLUGIN_SLUG}-${VERSION}.zip"
+            "${PLUGIN_SLUG}.zip"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
