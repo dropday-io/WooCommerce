@@ -1,0 +1,16 @@
+---
+description: How to implement native Dropday API features in this plugin
+alwaysApply: true
+---
+
+# Native Dropday API features
+
+When asked to support a feature of the Dropday API (see https://docs.dropday.io, e.g. `POST /orders`):
+
+- Read the relevant docs page first and comply with its spec (field names, types, limits, formats).
+- Map it to the obvious WooCommerce data and always send it. Do not add a toggle or opt-in setting.
+- Only add a plugin setting when there is no sensible WooCommerce source for the data (e.g. a meta key that differs per shop). Keep the settings page minimal.
+- Omit optional fields when there is no value, rather than sending empty values.
+- Update the features list and "What data is sent" section in `readme.txt`.
+
+Example: "send product tags as order line labels" means always sending the product's tag names in `products[].labels`, with no setting for it.
