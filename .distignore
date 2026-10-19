@@ -6,7 +6,6 @@
 /.distignore
 /.gitignore
 /docker-compose.yml
-/Makefile
 /README.md
 /.editorconfig
 /.gitattributes

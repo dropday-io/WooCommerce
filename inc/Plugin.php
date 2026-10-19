@@ -59,6 +59,8 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
 	    {
             require_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
+            add_action('before_woocommerce_init', array($this, 'declareWooCommerceCompatibility'));
+
             // do not register when WooCommerce is not enabled
             if (!is_plugin_active('woocommerce/woocommerce.php')) {
                 return;
@@ -79,6 +81,14 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             add_action('init', array($this, 'onInit'), 5);
             add_action('woocommerce_order_status_changed', array($this, 'onOrderStatusChanged'), 10, 3);
 	   }
+
+        public function declareWooCommerceCompatibility()
+        {
+            if (class_exists('\\Automattic\\WooCommerce\\Utilities\\FeaturesUtil')) {
+                \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', $this->pluginPath, true);
+                \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('cart_checkout_blocks', $this->pluginPath, true);
+            }
+        }
 	
     	public function onAdminMenu()
     	{
@@ -375,7 +385,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                     'products' => array()
                 );
 
-                if (!$this->settings['live']) {
+                if (empty($this->settings['live'])) {
                     $order_data['test'] = true;
                 }
 
@@ -502,8 +512,8 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
                 'Expect' => '100-Continue',
-                'Api-Key' => ''.$this->settings['apiKey'],
-                'Account-Id' => ''.$this->settings['accountId'],
+                'Api-Key' => isset($this->settings['apiKey']) ? ''.$this->settings['apiKey'] : '',
+                'Account-Id' => isset($this->settings['accountId']) ? ''.$this->settings['accountId'] : '',
             );
 
             $args = array(

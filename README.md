@@ -25,19 +25,30 @@ How to get started developing or testing this plugin?
 - Docker
 - Git
 
-### Installation
+### Docker
 
-1. Make a directory: `mkdir dropday-woocommerce`
-2. Enter it: `cd dropday-woocommerce`
-3. Clone the repo in a directory `git clone https://github.com/dropday-io/woocommerce.git .`
-4. Run `make install`
-5. Once the container is ready, go to http://localhost:8080
-6. Complete WordPress installation by setting admin credentials.
-7. Log in with your new credentials.
-8. In Plugins → Add New, install and activate WooCommerce.
-9. Update WordPress if prompted.
-10. Make sure Dropday is activated in Plugins.
-11. Go to Settings → Dropday Order Sync and enter your API-key and Account ID.
+For the latest WordPress 7.x:
+
+```
+git clone https://github.com/dropday-io/woocommerce.git dropday-woocommerce
+cd dropday-woocommerce
+docker compose up
+```
+
+For another version, use any [WordPress image tag](https://hub.docker.com/_/wordpress/tags):
+
+```
+docker compose down --volumes && export TAG=6.1 && docker compose up
+```
+
+### Setup
+
+1. Once the container is ready, go to http://localhost:8080
+2. Complete WordPress installation by setting admin credentials.
+3. Log in with your new credentials.
+4. In Plugins → Add New, install and activate WooCommerce.
+5. Make sure Dropday is activated in Plugins.
+6. Go to Settings → Dropday Order Sync and enter your API-key and Account ID.
 
 
 

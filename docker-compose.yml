@@ -1,6 +1,6 @@
 services:
   wordpress:
-    image: wordpress:latest
+    image: wordpress:${TAG:-7}
     ports:
       - '8080:80'
     environment:
