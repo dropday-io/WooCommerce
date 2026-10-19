@@ -173,6 +173,19 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             );
 
             add_settings_field(
+                $this->id.'_sendOrderStatus',
+                __( 'Send orders on status', 'dropday-for-woocommerce' ),
+                array($this, 'dropdayFieldSendOrderStatusCb'),
+                $this->id,
+                $this->id.'_section_developers',
+                array(
+                    'label_for'         => $this->id.'_sendOrderStatus',
+                    'class'             => 'row',
+                    'wporg_custom_data' => 'custom',
+                )
+            );
+
+            add_settings_field(
                 $this->id.'_metaWhitelist',
                 __( 'Product Meta Data Whitelist', 'dropday-for-woocommerce' ),
                 array($this, 'dropdayFieldMetaWhitelistCb'),
@@ -227,6 +240,11 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 $new_input['live'] = absint($input['live']);
             }
 
+            if (isset($input['sendOrderStatus'])) {
+                $status = sanitize_key($input['sendOrderStatus']);
+                $new_input['sendOrderStatus'] = array_key_exists($status, $this->getSendableOrderStatuses()) ? $status : '';
+            }
+
             if (isset($input['metaWhitelist'])) {
                 $new_input['metaWhitelist'] = sanitize_text_field($input['metaWhitelist']);
             }
@@ -278,6 +296,48 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 $id_escaped,
                 isset( $this->settings['accountId'] ) ? esc_attr( $this->settings['accountId']) : ''
             );
+        }
+
+        public function dropdayFieldSendOrderStatusCb()
+        {
+            $id_escaped = esc_attr($this->id);
+            $selected = isset( $this->settings['sendOrderStatus'] ) ? $this->settings['sendOrderStatus'] : '';
+            printf(
+                '<select id="%s_sendOrderStatus" name="%s[sendOrderStatus]"><option value="">%s</option>',
+                $id_escaped,
+                $id_escaped,
+                esc_html__('Any paid status', 'dropday-for-woocommerce')
+            );
+            foreach ($this->getSendableOrderStatuses() as $status => $label) {
+                printf(
+                    '<option value="%s" %s>%s</option>',
+                    esc_attr($status),
+                    selected($selected, $status, false),
+                    esc_html($label)
+                );
+            }
+            printf(
+                '</select><p class="description">%s</p>',
+                esc_html__('Orders are sent to Dropday when they get this status. With "Any paid status", orders are sent as soon as they are paid.', 'dropday-for-woocommerce')
+            );
+        }
+
+        /**
+         * Order statuses a merchant can choose to send orders to Dropday on.
+         *
+         * @return array Status labels keyed by status without the "wc-" prefix.
+         */
+        protected function getSendableOrderStatuses()
+        {
+            $excluded = array('pending', 'failed', 'cancelled', 'refunded', 'checkout-draft');
+            $statuses = array();
+            foreach (wc_get_order_statuses() as $key => $label) {
+                $status = preg_replace('/^wc-/', '', $key);
+                if (!in_array($status, $excluded, true)) {
+                    $statuses[$status] = $label;
+                }
+            }
+            return $statuses;
         }
 
         public function dropdayFieldMetaWhitelistCb()
@@ -352,6 +412,18 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
         
         public function onOrderStatusChanged($order_id, $old_status, $new_status)
         {
+            $send_status = isset($this->settings['sendOrderStatus']) ? $this->settings['sendOrderStatus'] : '';
+            if ($send_status !== '') {
+                if ($new_status !== $send_status) {
+                    return;
+                }
+            } else {
+                $order = wc_get_order($order_id);
+                if (!$order || !$order->is_paid()) {
+                    return;
+                }
+            }
+
             $this->handleOrder($order_id);
         }
         
@@ -362,7 +434,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             }
 
             $order = wc_get_order( $order_id );
-            if ( $order && $order->is_paid()) {
+            if ( $order ) {
                 $order_data = array(
                     'external_id' => ''.$order_id,
                     'source' => get_bloginfo('name'),

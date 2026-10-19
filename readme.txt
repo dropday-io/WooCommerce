@@ -20,6 +20,7 @@ Dropday - Automatically synchronizes your WooCommerce orders to the Dropday plat
 = Features =
 
 * Automatic order synchronization when orders are paid
+* Choose the order status that sends orders to Dropday (e.g. Completed)
 * Support for various cost-of-goods plugins
 * Configurable product meta data whitelist
 * Delivery date support from popular delivery date plugins
@@ -39,7 +40,8 @@ Dropday - Automatically synchronizes your WooCommerce orders to the Dropday plat
 Go to Settings → Dropday
 
 1. Enter your API Key and Account ID from your Dropday Dashboard
-2. Check 'Live mode' when you are ready to process real orders
+2. Optionally choose the order status that sends orders to Dropday under 'Send orders on status' (default: any paid status)
+3. Check 'Live mode' when you are ready to process real orders
 
 == External Services ==
 
@@ -49,7 +51,7 @@ Documentation: https://docs.dropday.io/
 
 = What data is sent =
 
-When an order is marked as paid in WooCommerce, the following data is sent to the Dropday API:
+When an order is sent to Dropday (see "When data is sent"), the following data is sent to the Dropday API:
 
 * Order ID and total amount
 * Customer shipping address (name, company, address, city, postcode, country, phone)
@@ -65,7 +67,8 @@ When an order is marked as paid in WooCommerce, the following data is sent to th
 
 Order data is sent automatically when:
 
-* An order status changes to a paid status in WooCommerce
+* An order status changes to a paid status in WooCommerce (default)
+* Or, if a status is chosen under 'Send orders on status', an order changes to that status
 
 = Service Provider =
 
