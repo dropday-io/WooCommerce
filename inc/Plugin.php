@@ -238,7 +238,6 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             if (isset($input['deliveryDateMeta'])) {
                 $new_input['deliveryDateMeta'] = sanitize_text_field($input['deliveryDateMeta']);
             }
-
             return $new_input;
         }
         
@@ -444,6 +443,11 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                         }
                     }
 
+                    $labels = $this->getProductTagLabels($product);
+                    if (!empty($labels)) {
+                        $p['labels'] = $labels;
+                    }
+
                     $order_data['products'][] = $p;
                 }
 
@@ -503,6 +507,33 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             }
 
             return null;
+        }
+
+        /**
+         * Get the product tag names to send as order line labels.
+         * Variations inherit the tags of their parent product.
+         *
+         * @param WC_Product $product The product of the order line.
+         * @return string[] Tag names.
+         */
+        protected function getProductTagLabels($product)
+        {
+            $product_id = $product->get_parent_id() ? $product->get_parent_id() : $product->get_id();
+            $terms = get_the_terms($product_id, 'product_tag');
+            if (!$terms || is_wp_error($terms)) {
+                return array();
+            }
+
+            $labels = array();
+            foreach ($terms as $term) {
+                // Dropday rejects labels longer than 255 characters
+                $label = mb_substr(html_entity_decode($term->name, ENT_QUOTES, 'UTF-8'), 0, 255);
+                if ($label !== '') {
+                    $labels[] = $label;
+                }
+            }
+
+            return array_values(array_unique($labels));
         }
 
         public function postOrder($order_data)

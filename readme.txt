@@ -23,6 +23,7 @@ Dropday - Automatically synchronizes your WooCommerce orders to the Dropday plat
 * Support for various cost-of-goods plugins
 * Configurable product meta data whitelist
 * Delivery date support from popular delivery date plugins
+* Product tags sent as order line labels
 * Live/Test mode toggle
 
 == Installation ==
@@ -58,6 +59,7 @@ When an order is marked as paid in WooCommerce, the following data is sent to th
 * Delivery date (if available from delivery date plugins)
 * Product information (name, SKU, quantity, price, image, brand, category)
 * Product purchase price (if available from cost-of-goods plugins)
+* Product tags as order line labels
 
 = When data is sent =
 
