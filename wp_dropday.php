@@ -4,7 +4,7 @@
  * Plugin Name: Dropday - Dropship Order Automation
  * Plugin URI: https://get.dropday.io/
  * Description: Order synchronisation with Dropday drop-shipping automation.
- * Version: 1.3.0
+ * Version: 1.4.0
  * Tested up to: 7.1
  * WC requires at least: 3.2
  * WC tested up to: 11.2
@@ -29,6 +29,6 @@ require_once(__DIR__ . '/inc/Plugin.php');
         __FILE__, 
         'DropdayOrder', 
         '',
-        '1.3.0'
+        '1.4.0'
     )
 )->register();
