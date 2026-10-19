@@ -29,6 +29,6 @@ require_once(__DIR__ . '/inc/Plugin.php');
         __FILE__, 
         'DropdayOrder', 
         '',
-        '1.1.3'
+        '1.2.0'
     )
 )->register();
