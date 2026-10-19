@@ -5,9 +5,9 @@
  * Plugin URI: https://get.dropday.io/
  * Description: Order synchronisation with Dropday drop-shipping automation.
  * Version: 1.1.3
- * Tested up to: 6.9
+ * Tested up to: 7.1
  * WC requires at least: 3.2
- * WC tested up to: 9.4
+ * WC tested up to: 11.2
  * Requires Plugins: woocommerce
  * Author: Contact Dropday Support
  * Author URI: https://get.dropday.io/contact

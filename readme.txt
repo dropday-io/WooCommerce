@@ -2,9 +2,9 @@
 Contributors: dropday
 Tags: dropshipping, automation, order automation, email to suppliers
 Requires at least: 5.0
-Tested up to: 6.9
+Tested up to: 7.1
 WC requires at least: 3.2
-WC tested up to: 9.4
+WC tested up to: 11.2
 Requires PHP: 7.0
 Requires Plugins: woocommerce
 Stable tag: 1.1.2
