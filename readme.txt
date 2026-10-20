@@ -25,6 +25,7 @@ Dropday - Automatically synchronizes your WooCommerce orders to the Dropday plat
 * Configurable product meta data whitelist
 * Delivery date support from popular delivery date plugins
 * Product tags sent as order line labels
+* Track and trace added to the order as WooCommerce fulfillments, one per shipment with the products in it, also when an order is split across suppliers
 * Live/Test mode toggle
 
 == Installation ==
@@ -42,6 +43,8 @@ Go to Settings → Dropday
 1. Enter your API Key and Account ID from your Dropday Dashboard
 2. Optionally choose the order status that sends orders to Dropday under 'Send orders on status' (default: any paid status)
 3. Check 'Live mode' when you are ready to process real orders
+
+When you save the settings, the plugin adds a webhook to your Dropday account, so Dropday can send track and trace back to your store. You can see it under Webhooks in your Dropday settings. Use the 'Install webhook' button under 'Track and trace' to install it again, for example after rotating its secret in Dropday.
 
 == External Services ==
 
@@ -63,12 +66,22 @@ When an order is sent to Dropday (see "When data is sent"), the following data i
 * Product purchase price (if available from cost-of-goods plugins)
 * Product tags as order line labels
 
+To receive track and trace, the plugin registers a webhook in your Dropday account with your store's webhook URL (https://your-store.com/wp-json/dropday/v1/webhook).
+
 = When data is sent =
 
 Order data is sent automatically when:
 
 * An order status changes to a paid status in WooCommerce (default)
 * Or, if a status is chosen under 'Send orders on status', an order changes to that status
+
+The webhook is registered when the settings are saved, when you click 'Install webhook' (or on the first visit to the admin after updating the plugin), and removed when the plugin is deactivated.
+
+= What data is received =
+
+When a supplier ships its part of an order, Dropday sends the tracking code, the tracking link, the carrier and the products in that shipment to your store. The plugin adds these to the WooCommerce order as a fulfillment, which WooCommerce shows on the order and emails to the customer. When an order is split across suppliers, each shipment gets its own fulfillment.
+
+This uses WooCommerce Order Fulfillments (WooCommerce 10.1 or newer), which the plugin turns on, as WooCommerce has no setting for it yet.
 
 = Service Provider =
 

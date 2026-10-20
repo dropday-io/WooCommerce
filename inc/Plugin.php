@@ -22,6 +22,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
     	protected $version;
         protected $image_format = 'full';
         protected $api_uri = 'https://dropday.io/api/v1/';
+        protected $webhook_events = array('supplier_order.shipped');
         
         public function __construct($pluginPath, $adapterName, $description = '', $version = null) {
             $this->id = str_replace('-pro', '', basename($pluginPath, '.php'));
@@ -60,6 +61,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             require_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
             add_action('before_woocommerce_init', array($this, 'declareWooCommerceCompatibility'));
+            register_deactivation_hook($this->pluginPath, array($this, 'onDeactivate'));
 
             // do not register when WooCommerce is not enabled
             if (!is_plugin_active('woocommerce/woocommerce.php')) {
@@ -74,11 +76,16 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             if (is_admin()) {
                 add_action('admin_menu', array($this, 'onAdminMenu'));
                 add_action( 'admin_init', array($this, 'dropdaySettingsInit') );
+                add_action('admin_init', array($this, 'maybeInstallWebhook'));
+                add_filter('pre_update_option_' . $this->id, array($this, 'onSettingsSave'));
+                add_action('admin_post_dropday_install_webhook', array($this, 'onInstallWebhookRequest'));
             }
 
             add_filter('plugin_action_links_' . plugin_basename($this->pluginPath), array($this, 'onPluginActionLinks'), 1, 1);
             add_filter('plugin_row_meta', array($this, 'onPluginRowMeta'), 10, 2);
             add_action('init', array($this, 'onInit'), 5);
+            add_action('rest_api_init', array($this, 'registerWebhookRoute'));
+            add_action('plugins_loaded', array($this, 'enableFulfillments'));
             add_action('woocommerce_order_status_changed', array($this, 'onOrderStatusChanged'), 10, 3);
 	   }
 
@@ -393,8 +400,18 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 add_settings_error( 'wporg_messages', 'wporg_message', __( 'Settings Saved', 'dropday-for-woocommerce' ), 'updated' );
             }
 
+            $webhook_result = isset($_GET['dropday_webhook']) ? sanitize_key(wp_unslash($_GET['dropday_webhook'])) : '';
+            $webhook_error = get_transient($this->id . '_webhook_error');
+            if ($webhook_result === 'installed') {
+                add_settings_error( 'wporg_messages', 'dropday_webhook', __( 'Webhook installed in Dropday.', 'dropday-for-woocommerce' ), 'updated' );
+            } elseif ($webhook_error && ($webhook_result === 'failed' || !$this->getStoredWebhook())) {
+                /* translators: %s: error message from the Dropday API */
+                add_settings_error( 'wporg_messages', 'dropday_webhook', sprintf(__( 'The webhook could not be installed in Dropday: %s', 'dropday-for-woocommerce' ), $webhook_error), 'error' );
+            }
+
             settings_errors( 'wporg_messages' );
             $this->settings = get_option( $this->id );
+            $webhook = $this->getStoredWebhook();
             ?>
             <div class="wrap">
                 <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
@@ -406,6 +423,36 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                     submit_button( 'Save Settings' );
                     ?>
                 </form>
+
+                <h2><?php esc_html_e( 'Track and trace', 'dropday-for-woocommerce' ); ?></h2>
+                <p>
+                    <?php
+                    if (!$this->hasApiCredentials()) {
+                        esc_html_e( 'Save your API key and account ID to install the webhook that sends track and trace to this store.', 'dropday-for-woocommerce' );
+                    } elseif ($webhook) {
+                        /* translators: %s: webhook URL */
+                        printf(esc_html__( 'Installed. Dropday sends track and trace to %s.', 'dropday-for-woocommerce' ), '<code>' . esc_html($webhook['url']) . '</code>');
+                    } else {
+                        esc_html_e( 'Not installed. Dropday can\'t send track and trace to this store until the webhook is installed.', 'dropday-for-woocommerce' );
+                    }
+                    ?>
+                </p>
+                <form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post">
+                    <input type="hidden" name="action" value="dropday_install_webhook" />
+                    <?php
+                    wp_nonce_field( 'dropday_install_webhook' );
+                    submit_button(
+                        $webhook ? __( 'Reinstall webhook', 'dropday-for-woocommerce' ) : __( 'Install webhook', 'dropday-for-woocommerce' ),
+                        'secondary',
+                        'dropday-install-webhook',
+                        false,
+                        $this->hasApiCredentials() ? array() : array( 'disabled' => 'disabled' )
+                    );
+                    ?>
+                </form>
+                <?php if ($webhook) : ?>
+                    <p class="description"><?php esc_html_e( 'Reinstalling replaces the webhook in Dropday with a new one, for example after rotating its secret in Dropday.', 'dropday-for-woocommerce' ); ?></p>
+                <?php endif; ?>
             </div>
             <?php
         }
@@ -611,13 +658,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
         public function postOrder($order_data)
         {
             $order_data = json_encode($order_data);
-            $headers = array(
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json',
-                'Expect' => '100-Continue',
-                'Api-Key' => isset($this->settings['apiKey']) ? ''.$this->settings['apiKey'] : '',
-                'Account-Id' => isset($this->settings['accountId']) ? ''.$this->settings['accountId'] : '',
-            );
+            $headers = array_merge($this->getApiHeaders(), array('Expect' => '100-Continue'));
 
             $args = array(
                 'body'        => $order_data,
@@ -630,6 +671,401 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             }
             
             return wp_remote_post( $this->getApiUrl('orders'), $args );
+        }
+
+        protected function getApiHeaders()
+        {
+            return array(
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+                'Api-Key' => isset($this->settings['apiKey']) ? ''.$this->settings['apiKey'] : '',
+                'Account-Id' => isset($this->settings['accountId']) ? ''.$this->settings['accountId'] : '',
+            );
+        }
+
+        /**
+         * Send a request to the Dropday API.
+         *
+         * @param string     $method HTTP method.
+         * @param string     $path   Path relative to the API URL, e.g. "webhooks".
+         * @param array|null $data   JSON body.
+         * @return array|\WP_Error Decoded response body, or an error for non-2xx responses.
+         */
+        protected function apiRequest($method, $path, $data = null)
+        {
+            $args = array(
+                'method' => $method,
+                'headers' => $this->getApiHeaders(),
+            );
+            if ($data !== null) {
+                $args['body'] = json_encode($data);
+            }
+
+            $response = wp_remote_request($this->getApiUrl($path), $args);
+            if (is_wp_error($response)) {
+                return $response;
+            }
+
+            $code = (int) wp_remote_retrieve_response_code($response);
+            $body = json_decode(wp_remote_retrieve_body($response), true);
+            if ($code >= 200 && $code < 300) {
+                return is_array($body) ? $body : array();
+            }
+
+            $messages = array();
+            if (isset($body['errors']) && is_array($body['errors'])) {
+                foreach ($body['errors'] as $field_errors) {
+                    foreach ((array) $field_errors as $message) {
+                        $messages[] = $message;
+                    }
+                }
+            } elseif (!empty($body['message'])) {
+                $messages[] = $body['message'];
+            }
+            if (empty($messages)) {
+                $messages[] = 'response code ' . $code . '.';
+            }
+
+            return new \WP_Error('dropday_api_error', implode(' ', $messages));
+        }
+
+        protected function hasApiCredentials()
+        {
+            return !empty($this->settings['apiKey']) && !empty($this->settings['accountId']);
+        }
+
+        public function getWebhookUrl()
+        {
+            return rest_url('dropday/v1/webhook');
+        }
+
+        /**
+         * Get the webhook this site installed for the current account and URL.
+         *
+         * @return array|null Array with id, secret, url and account_id, or null when not installed.
+         */
+        protected function getStoredWebhook()
+        {
+            $webhook = get_option($this->id . '_webhook');
+            if (!is_array($webhook) || empty($webhook['id']) || empty($webhook['secret'])
+                || !isset($webhook['url'], $webhook['account_id'], $this->settings['accountId'])
+                || $webhook['url'] !== $this->getWebhookUrl()
+                || (string) $webhook['account_id'] !== (string) $this->settings['accountId']
+            ) {
+                return null;
+            }
+            return $webhook;
+        }
+
+        /**
+         * Installs the webhook for sites that have API credentials but no webhook yet,
+         * e.g. after updating the plugin or moving the site to another URL.
+         */
+        public function maybeInstallWebhook()
+        {
+            if (wp_doing_ajax() || !$this->hasApiCredentials() || $this->getStoredWebhook()) {
+                return;
+            }
+            // Failed attempts are retried after the error expires, when the settings are saved, or with the "Install webhook" button
+            if (get_transient($this->id . '_webhook_error')) {
+                return;
+            }
+            $this->installWebhook();
+        }
+
+        /**
+         * (Re)installs the webhook with the submitted settings whenever the settings are saved.
+         *
+         * @param array $value The sanitized settings.
+         * @return array The settings, unchanged.
+         */
+        public function onSettingsSave($value)
+        {
+            $this->settings = $value;
+            delete_transient($this->id . '_webhook_error');
+            $this->installWebhook();
+            return $value;
+        }
+
+        /**
+         * Handles the "Install webhook" button on the settings page.
+         */
+        public function onInstallWebhookRequest()
+        {
+            if (!current_user_can('manage_options')) {
+                wp_die(esc_html__('You are not allowed to do this.', 'dropday-for-woocommerce'), 403);
+            }
+            check_admin_referer('dropday_install_webhook');
+
+            $installed = $this->installWebhook(true);
+            wp_safe_redirect(add_query_arg(
+                'dropday_webhook',
+                $installed ? 'installed' : 'failed',
+                admin_url('options-general.php?page=admin-' . $this->id)
+            ));
+            exit;
+        }
+
+        /**
+         * @param bool $recreate Replace the webhook in Dropday instead of updating it, which gives it a new secret.
+         * @return bool Whether the webhook is installed.
+         */
+        public function installWebhook($recreate = false)
+        {
+            if (!$this->hasApiCredentials()) {
+                return false;
+            }
+
+            $webhook = $this->registerWebhook($recreate);
+            if (is_wp_error($webhook)) {
+                wc_get_logger()->warning('[dropday] webhook installation failed: ' . $webhook->get_error_message(), array('source' => $this->id));
+                set_transient($this->id . '_webhook_error', $webhook->get_error_message(), HOUR_IN_SECONDS);
+                return false;
+            }
+
+            update_option($this->id . '_webhook', $webhook);
+            delete_transient($this->id . '_webhook_error');
+            return true;
+        }
+
+        /**
+         * Create or update the webhook in Dropday.
+         *
+         * @param bool $recreate See installWebhook().
+         * @return array|\WP_Error The webhook to store, see getStoredWebhook().
+         */
+        protected function registerWebhook($recreate = false)
+        {
+            $url = $this->getWebhookUrl();
+            $webhooks = $this->apiRequest('GET', 'webhooks');
+            if (is_wp_error($webhooks)) {
+                return $webhooks;
+            }
+
+            $stored = $this->getStoredWebhook();
+            foreach (isset($webhooks['data']) ? (array) $webhooks['data'] : array() as $existing) {
+                if (!isset($existing['id'], $existing['url']) || $existing['url'] !== $url) {
+                    continue;
+                }
+
+                if (!$recreate && $stored && (int) $stored['id'] === (int) $existing['id']) {
+                    $response = $this->apiRequest('PATCH', 'webhooks/' . (int) $existing['id'], array('events' => $this->webhook_events));
+                    return is_wp_error($response) ? $response : $stored;
+                }
+
+                // The secret is only returned on creation, so replace a webhook we don't know the secret of
+                $response = $this->apiRequest('DELETE', 'webhooks/' . (int) $existing['id']);
+                if (is_wp_error($response)) {
+                    return $response;
+                }
+            }
+
+            $response = $this->apiRequest('POST', 'webhooks', array(
+                'name' => 'WooCommerce',
+                'description' => 'Installed by the Dropday plugin on ' . home_url(),
+                'url' => $url,
+                'events' => $this->webhook_events,
+            ));
+            if (is_wp_error($response)) {
+                return $response;
+            }
+            if (empty($response['data']['id']) || empty($response['data']['secret'])) {
+                return new \WP_Error('dropday_api_error', 'No webhook ID or secret in the response.');
+            }
+
+            return array(
+                'id' => (int) $response['data']['id'],
+                'secret' => (string) $response['data']['secret'],
+                'url' => $url,
+                'account_id' => (string) $this->settings['accountId'],
+            );
+        }
+
+        public function onDeactivate()
+        {
+            $this->loadSettings();
+            $webhook = $this->getStoredWebhook();
+            if ($webhook) {
+                $this->apiRequest('DELETE', 'webhooks/' . (int) $webhook['id']);
+            }
+            delete_option($this->id . '_webhook');
+            delete_transient($this->id . '_webhook_error');
+        }
+
+        public function registerWebhookRoute()
+        {
+            register_rest_route('dropday/v1', '/webhook', array(
+                'methods' => 'POST',
+                'callback' => array($this, 'onWebhook'),
+                // Deliveries are authenticated by their signature
+                'permission_callback' => '__return_true',
+            ));
+        }
+
+        public function onWebhook(\WP_REST_Request $request)
+        {
+            $webhook = get_option($this->id . '_webhook');
+            $body = $request->get_body();
+            $signature = (string) $request->get_header('X-Dropday-Signature');
+            if (empty($webhook['secret']) || !hash_equals(hash_hmac('sha256', $body, $webhook['secret']), $signature)) {
+                return new \WP_REST_Response(array('message' => 'Invalid signature.'), 401);
+            }
+
+            $payload = json_decode($body, true);
+            if (!isset($payload['event'])) {
+                return new \WP_REST_Response(array('message' => 'Invalid payload.'), 400);
+            }
+
+            if ($payload['event'] !== 'supplier_order.shipped') {
+                return new \WP_REST_Response(array('message' => 'Event ignored.'), 200);
+            }
+
+            try {
+                $message = $this->addShipment(isset($payload['data']) ? (array) $payload['data'] : array());
+            } catch (\Exception $e) {
+                wc_get_logger()->error('[dropday] could not add shipment: ' . $e->getMessage(), array('source' => $this->id));
+                return new \WP_REST_Response(array('message' => $e->getMessage()), 500);
+            }
+            return new \WP_REST_Response(array('message' => $message), 200);
+        }
+
+        /**
+         * WooCommerce has no setting for Order Fulfillments yet, so the plugin turns it on
+         * to store shipments as fulfillments.
+         */
+        public function enableFulfillments()
+        {
+            if (class_exists(\Automattic\WooCommerce\Admin\Features\Fulfillments\Fulfillment::class)
+                && get_option('woocommerce_feature_fulfillments_enabled') !== 'yes'
+            ) {
+                update_option('woocommerce_feature_fulfillments_enabled', 'yes', true);
+            }
+        }
+
+        /**
+         * Add a shipped supplier order to the WooCommerce order as a fulfillment,
+         * with its products, tracking code and tracking URL.
+         *
+         * @param array $data The data of a supplier_order.shipped event.
+         * @return string Result message for the webhook response.
+         * @throws \Exception When the fulfillment can't be saved.
+         */
+        protected function addShipment($data)
+        {
+            if (!class_exists(\Automattic\WooCommerce\Admin\Features\Fulfillments\Fulfillment::class)
+                || !\Automattic\WooCommerce\Utilities\FeaturesUtil::feature_is_enabled('fulfillments')
+            ) {
+                return 'WooCommerce Fulfillments is not available, it requires WooCommerce 10.1 or newer.';
+            }
+
+            $dropday_order = isset($data['order']) ? (array) $data['order'] : array();
+            $order_id = isset($dropday_order['external_id']) ? (string) $dropday_order['external_id'] : '';
+            $order = preg_match('/^\d+$/', $order_id) ? wc_get_order((int) $order_id) : false;
+            if (!$order) {
+                return 'Order not found.';
+            }
+
+            // Order lines were sent with the order item ID as external_id. Matching them also
+            // guards against orders from other sources in the same Dropday account.
+            $order_items = $order->get_items();
+            $items = array();
+            foreach (isset($dropday_order['order_lines']) ? (array) $dropday_order['order_lines'] : array() as $line) {
+                $item_id = isset($line['external_id']) ? (int) $line['external_id'] : 0;
+                $quantity = isset($line['quantity']) ? (int) $line['quantity'] : 0;
+                if (isset($order_items[$item_id]) && $quantity > 0) {
+                    $items[] = array('item_id' => $item_id, 'qty' => $quantity);
+                }
+            }
+            if (empty($items)) {
+                return 'No products of this order found.';
+            }
+
+            $supplier_order_id = isset($data['supplier_order_id']) ? (int) $data['supplier_order_id'] : 0;
+            $tracking_code = isset($data['tracking_code']) ? sanitize_text_field((string) $data['tracking_code']) : '';
+            $tracking_url = isset($data['tracking_url']) ? esc_url_raw((string) $data['tracking_url'], array('http', 'https')) : '';
+
+            // Stored the way the fulfillment editor in the WooCommerce admin stores it
+            $tracking = array(
+                '_shipping_option' => $tracking_code === '' && $tracking_url === '' ? 'no-info' : 'manual-entry',
+                '_tracking_number' => $tracking_code,
+                '_tracking_url' => $tracking_url,
+            );
+            // Without a carrier, one the merchant chose in WooCommerce is kept
+            if (!empty($data['carrier']['code'])) {
+                $tracking = array_merge($tracking, $this->getShipmentProviderMeta($data['carrier']));
+            }
+            $fulfillment = $this->getShipmentFulfillment($order, $supplier_order_id);
+            $is_new = $fulfillment === null;
+            if ($is_new) {
+                $fulfillment = new \Automattic\WooCommerce\Admin\Features\Fulfillments\Fulfillment();
+                $fulfillment->set_entity_type(\WC_Order::class);
+                $fulfillment->set_entity_id((string) $order->get_id());
+                $fulfillment->set_status('fulfilled');
+                $fulfillment->set_items($items);
+                $fulfillment->update_meta_data('_dropday_supplier_order_id', $supplier_order_id);
+            } else {
+                $changed = false;
+                foreach ($tracking as $key => $value) {
+                    $changed = $changed || (string) $fulfillment->get_meta($key) !== $value;
+                }
+                if (!$changed) {
+                    return 'Shipment already added.';
+                }
+            }
+
+            foreach ($tracking as $key => $value) {
+                if ($value === '') {
+                    $fulfillment->delete_meta_data($key);
+                } else {
+                    $fulfillment->update_meta_data($key, $value);
+                }
+            }
+            $fulfillment->save();
+
+            // Sends the customer the same email as when the merchant fulfills an order in WooCommerce
+            if ($is_new) {
+                do_action('woocommerce_fulfillment_created_notification', $order->get_id(), $fulfillment, $order);
+                return 'Shipment added.';
+            }
+            do_action('woocommerce_fulfillment_updated_notification', $order->get_id(), $fulfillment, $order);
+            return 'Shipment updated.';
+        }
+
+        /**
+         * Map a Dropday carrier to a WooCommerce shipping provider. Carriers WooCommerce doesn't know
+         * are stored as "other" with their name, like the fulfillment editor does.
+         *
+         * @param array $carrier Dropday carrier with code and name.
+         * @return array Meta values keyed by meta key. Empty values are to be deleted.
+         */
+        protected function getShipmentProviderMeta($carrier)
+        {
+            $code = sanitize_key((string) $carrier['code']);
+            $providers = \Automattic\WooCommerce\Admin\Features\Fulfillments\FulfillmentUtils::get_shipping_providers();
+            if (isset($providers[$code])) {
+                return array('_shipment_provider' => $code, '_provider_name' => '');
+            }
+
+            $name = isset($carrier['name']) ? sanitize_text_field((string) $carrier['name']) : '';
+            return array('_shipment_provider' => 'other', '_provider_name' => $name !== '' ? $name : $code);
+        }
+
+        /**
+         * Find the fulfillment that was added for a supplier order.
+         *
+         * @param \WC_Order $order
+         * @param int       $supplier_order_id
+         * @return \Automattic\WooCommerce\Admin\Features\Fulfillments\Fulfillment|null
+         */
+        protected function getShipmentFulfillment($order, $supplier_order_id)
+        {
+            $fulfillments = \WC_Data_Store::load('order-fulfillment')->read_fulfillments(\WC_Order::class, (string) $order->get_id());
+            foreach ($fulfillments as $fulfillment) {
+                if ((int) $fulfillment->get_meta('_dropday_supplier_order_id') === $supplier_order_id) {
+                    return $fulfillment;
+                }
+            }
+            return null;
         }
 
         /**
