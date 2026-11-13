@@ -24,7 +24,7 @@ Dropday - Automatically synchronizes your WooCommerce orders to the Dropday plat
 * Support for various cost-of-goods plugins
 * Configurable product meta data whitelist
 * Delivery date support from popular delivery date plugins
-* Product tags sent as order line labels
+* Product taxonomy terms (tags, categories, brands, attributes) sent as order line labels
 * Configurable order meta data whitelist, sent as custom order data (e.g. extra checkout fields)
 * Track and trace added to the order as WooCommerce fulfillments, one per shipment with the products in it, also when an order is split across suppliers
 * Live/Test mode toggle
@@ -65,7 +65,7 @@ When an order is sent to Dropday (see "When data is sent"), the following data i
 * Delivery date (if available from delivery date plugins)
 * Product information (name, SKU, quantity, price, image, brand, category)
 * Product purchase price (if available from cost-of-goods plugins)
-* Product tags as order line labels
+* Product taxonomy terms (tags, categories, brands, attributes) as order line labels
 * Order meta fields chosen under "Order Meta Data Whitelist" (none by default)
 
 To receive track and trace, the plugin registers a webhook in your Dropday account with your store's webhook URL (https://your-store.com/wp-json/dropday/v1/webhook).
