@@ -149,7 +149,6 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 $this->id.'_section_developers',
                 array(
                     'label_for'         => $this->id.'_live',
-                    'class'             => 'row',
                     'wporg_custom_data' => 'custom',
                 )
             );
@@ -161,7 +160,6 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 $this->id.'_section_developers',
                 array(
                     'label_for'         => $this->id.'_apiKey',
-                    'class'             => 'row',
                     'wporg_custom_data' => 'custom',
                 )
             );
@@ -174,7 +172,6 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 $this->id.'_section_developers',
                 array(
                     'label_for'         => $this->id.'_accountId',
-                    'class'             => 'row',
                     'wporg_custom_data' => 'custom',
                 )
             );
@@ -187,7 +184,6 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 $this->id.'_section_developers',
                 array(
                     'label_for'         => $this->id.'_sendOrderStatus',
-                    'class'             => 'row',
                     'wporg_custom_data' => 'custom',
                 )
             );
@@ -200,7 +196,18 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 $this->id.'_section_developers',
                 array(
                     'label_for'         => $this->id.'_metaWhitelist',
-                    'class'             => 'row',
+                    'wporg_custom_data' => 'custom',
+                )
+            );
+
+            add_settings_field(
+                $this->id.'_orderMetaWhitelist',
+                __( 'Order Meta Data Whitelist', 'dropday-for-woocommerce' ),
+                array($this, 'dropdayFieldOrderMetaWhitelistCb'),
+                $this->id,
+                $this->id.'_section_developers',
+                array(
+                    'label_for'         => $this->id.'_orderMetaWhitelist',
                     'wporg_custom_data' => 'custom',
                 )
             );
@@ -213,7 +220,6 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 $this->id.'_section_developers',
                 array(
                     'label_for'         => $this->id.'_purchasePriceMeta',
-                    'class'             => 'row',
                     'wporg_custom_data' => 'custom',
                 )
             );
@@ -226,7 +232,6 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                 $this->id.'_section_developers',
                 array(
                     'label_for'         => $this->id.'_deliveryDateMeta',
-                    'class'             => 'row',
                     'wporg_custom_data' => 'custom',
                 )
             );
@@ -254,6 +259,10 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
 
             if (isset($input['metaWhitelist'])) {
                 $new_input['metaWhitelist'] = sanitize_text_field($input['metaWhitelist']);
+            }
+
+            if (isset($input['orderMetaWhitelist'])) {
+                $new_input['orderMetaWhitelist'] = sanitize_text_field($input['orderMetaWhitelist']);
             }
 
             if (isset($input['purchasePriceMeta'])) {
@@ -287,7 +296,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
         {
             $id_escaped = esc_attr($this->id);
             printf(
-                '<input type="text" class="large-text" id="%s_apiKey" name="%s[apiKey]" value="%s" />',
+                '<input type="text" class="large-text" style="width:40em;max-width:100%%" id="%s_apiKey" name="%s[apiKey]" value="%s" />',
                 $id_escaped,
                 $id_escaped,
                 isset( $this->settings['apiKey'] ) ? esc_attr( $this->settings['apiKey']) : ''
@@ -351,7 +360,7 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
         {
             $id_escaped = esc_attr($this->id);
             printf(
-                '<input type="text" class="large-text" id="%s_metaWhitelist" name="%s[metaWhitelist]" value="%s" placeholder="supplier_code, purchase_price" />
+                '<input type="text" class="large-text" style="width:40em;max-width:100%%" id="%s_metaWhitelist" name="%s[metaWhitelist]" value="%s" placeholder="supplier_code, purchase_price" />
                 <p class="description">%s</p>',
                 $id_escaped,
                 $id_escaped,
@@ -360,18 +369,31 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             );
         }
 
+        public function dropdayFieldOrderMetaWhitelistCb()
+        {
+            $id_escaped = esc_attr($this->id);
+            printf(
+                '<input type="text" class="large-text" style="width:40em;max-width:100%%" id="%s_orderMetaWhitelist" name="%s[orderMetaWhitelist]" value="%s" placeholder="_shipping_floor, gift_message" />
+                <p class="description">%s</p>',
+                $id_escaped,
+                $id_escaped,
+                isset( $this->settings['orderMetaWhitelist'] ) ? esc_attr( $this->settings['orderMetaWhitelist']) : '',
+                esc_html__('Comma-separated list of order meta field names to send to Dropday as custom order data.', 'dropday-for-woocommerce')
+            );
+        }
+
         public function dropdayFieldPurchasePriceMetaCb()
         {
             $id_escaped = esc_attr($this->id);
             $default_keys = '_wc_cog_cost, _alg_wc_cog_cost, _wcj_purchase_price, _purchase_price';
             printf(
-                '<input type="text" class="large-text" id="%s_purchasePriceMeta" name="%s[purchasePriceMeta]" value="%s" placeholder="%s" />
+                '<input type="text" class="large-text" style="width:40em;max-width:100%%" id="%s_purchasePriceMeta" name="%s[purchasePriceMeta]" value="%s" placeholder="%s" />
                 <p class="description">%s</p>',
                 $id_escaped,
                 $id_escaped,
                 isset( $this->settings['purchasePriceMeta'] ) ? esc_attr( $this->settings['purchasePriceMeta']) : esc_attr($default_keys),
                 esc_attr($default_keys),
-                esc_html__('Comma-separated list of meta field names to check for purchase price (checked in order). Common keys: _wc_cog_cost (Cost of Goods by SkyVerge), _alg_wc_cog_cost (WPFactory), _wcj_purchase_price (Booster), _purchase_price (custom).', 'dropday-for-woocommerce')
+                esc_html__('Comma-separated list of meta field names to check for purchase price (checked in order).', 'dropday-for-woocommerce')
             );
         }
 
@@ -380,13 +402,13 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             $id_escaped = esc_attr($this->id);
             $default_keys = 'Delivery Date, _orddd_lite_timestamp, delivery_date, _delivery_date, jckwds_date, order_delivery_date';
             printf(
-                '<input type="text" class="large-text" id="%s_deliveryDateMeta" name="%s[deliveryDateMeta]" value="%s" placeholder="%s" />
+                '<input type="text" class="large-text" style="width:40em;max-width:100%%" id="%s_deliveryDateMeta" name="%s[deliveryDateMeta]" value="%s" placeholder="%s" />
                 <p class="description">%s</p>',
                 $id_escaped,
                 $id_escaped,
                 isset( $this->settings['deliveryDateMeta'] ) ? esc_attr( $this->settings['deliveryDateMeta']) : esc_attr($default_keys),
                 esc_attr($default_keys),
-                esc_html__('Comma-separated list of order meta field names to check for delivery date (checked in order). Common keys: Delivery Date (Order Delivery Date Lite), jckwds_date (Iconic Delivery Slots), delivery_date (generic).', 'dropday-for-woocommerce')
+                esc_html__('Comma-separated list of order meta field names to check for delivery date (checked in order).', 'dropday-for-woocommerce')
             );
         }
         
@@ -570,6 +592,11 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
                     $order_data['products'][] = $p;
                 }
 
+                $custom = $this->getOrderCustomData($order);
+                if (!empty($custom)) {
+                    $order_data['custom'] = $custom;
+                }
+
                 $response = $this->postOrder($order_data);
 
                 $context = array( 'source' => $this->id );
@@ -626,6 +653,26 @@ if (!class_exists('\\Dropday\\WooCommerce\\Order\\Plugin')):
             }
 
             return null;
+        }
+
+        /**
+         * Whitelisted order meta (e.g. extra checkout fields) as custom order data.
+         *
+         * @return array Scalar values keyed by meta key.
+         */
+        protected function getOrderCustomData($order)
+        {
+            $custom = array();
+            if (!empty($this->settings['orderMetaWhitelist'])) {
+                $whitelist = array_filter(array_map('trim', explode(',', $this->settings['orderMetaWhitelist'])));
+                foreach ($whitelist as $key) {
+                    $value = $order->get_meta($key);
+                    if (is_scalar($value) && $value !== '') {
+                        $custom[$key] = is_bool($value) ? (int) $value : $value;
+                    }
+                }
+            }
+            return $custom;
         }
 
         /**
